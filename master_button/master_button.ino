@@ -1,4 +1,5 @@
 #include "ESP8266WiFi.h"
+#include "messages.h"
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
@@ -10,23 +11,15 @@ const int BTN_PIN = 14;
 const char* ssid = "Kalat_ja_Rapu_2G";
 const char* password = "";
 const int WIFI_PORT = 80;
-const int MAX_NOF_CLIENTS = 3;  //TODO change to const
+const int MAX_NOF_CLIENTS = 3;
 
 //Wifi related variables:
 WiFiServer wifiServer(WIFI_PORT);
 WiFiClient *clients[MAX_NOF_CLIENTS] = { NULL };
-String input_msgs[4];     //Messages from myself are stored also
-
-//Messages:
-const String msg_led_on = "LED_ON";
-const String msg_led_off = "LED_OFF";
-const String msg_led_blink = "LED_BLINKING";
-const String msg_led_blink_off = "LED_BLINKING_OFF";
-const String msg_btn_pressed = "BTN_SHORT";
-const String msg_btn_pressed_long = "BTN_LONG";
+String input_msgs[MAX_NOF_CLIENTS +1];     //Messages from myself are stored also
 
 //Blinking related parameters
-const int blinkDelay_ms = 1000;
+const int blinkDelay_ms = 500;
 bool blink_enabled = false;
 
 //Button related parameters
@@ -39,17 +32,8 @@ int blink_state = -1;
 long lastDebounceTime = 0;
 long lastBlinkTime = 0;
 
-//Enumerations for different button colors
-enum BUTTON_TYPE
-{
-  RED = 0,
-  BLUE = 1,
-  GREEN = 2,
-  MY_COLOR = 3
-};
-
 //Game logic related variables:
-int led_states[4];
+int led_states[MAX_NOF_CLIENTS +1];
 
 
 //--------------------Functions--------------------
@@ -57,7 +41,6 @@ int led_states[4];
 //Blink the led <times> times
 void blink(int times)
 {
-  
   for(int i = 0; i < times; i++)
   {
     delay(blinkDelay_ms);
@@ -94,8 +77,9 @@ ISR_PREFIX void handleInterrupt()
 {
   if((millis() - lastDebounceTime) > debounceDelay_ms)
   {
-    input_msgs[MY_COLOR] = msg_btn_pressed;
+    input_msgs[-1] = msg_btn_pressed_short;
     lastDebounceTime = millis();
+    Serial.println("My button pressed");
   }
 }
 
@@ -114,6 +98,7 @@ int checkNewClients()
       {
         clients[i] = new WiFiClient(newClient);
         Serial.println("New client added successfully");
+        return 0;
       }
     }
     Serial.println("New client available, but no space left on the client list.");
@@ -149,26 +134,30 @@ int checkNewMessages()
     //Check if client exists and has any messages
     if (clients[i] != NULL && clients[i]->available())
     {
-      //Read the message and store it
-      input_msgs[i] = clients[i]->readStringUntil('\n');
-      Serial.print("New message received from index: ");
-      Serial.println(i);
+      //Serial.println("New received data as hex:");
+      //Serial.println("---");
+      while(clients[i]->available())
+      {
+        char c = clients[i]->read();
+        //Serial.println(c, HEX);
+        if (!(c == '\n' || c=='\r')) input_msgs[i] += String(c);
+      }
+      Serial.println("---");
     }
   }
   
   return 0;
 }
 
-//Get new message from memory
-//TODO change parameter to button type
-String getNewMessage(int index)
+//Get new message from memory, optionally clear the message after reading
+String getNewMessage(int index, bool clear = false)
 {
   String msg = input_msgs[index];
-  //input_msg[index] = "";
+  if (clear) input_msgs[index] = "";
   return msg;
 }
 
-//Clear new messages from memory
+//Clear all new messages from memory
 void clearNewMessages()
 {
   for (size_t i = 0; i < MAX_NOF_CLIENTS; i++)
@@ -180,15 +169,16 @@ void clearNewMessages()
 //Send message to the client
 int sendMessage(const String newMessage, size_t atIndex)
 {
-  if(clients[atIndex] != NULL && clients[atIndex]->available())
+  if(clients[atIndex] != NULL && clients[atIndex]->connected())
   {
     clients[atIndex]->println(newMessage);
+    Serial.println("Message sent");
   }
   else
   {
     Serial.print("Client at index ");
     Serial.print(atIndex);
-    Serial.println("is not connected!");
+    Serial.println(" is not connected!");
     return -1;
   }
 
@@ -202,11 +192,15 @@ void testLogic()
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++)
   {
     //Handle button press
-    if (input_msgs[i] == msg_btn_pressed)
+    if (getNewMessage(i) == msg_btn_pressed_short)
     {
       //Send message to change led state
-      led_states[i] = -led_states[i];
+      (led_states[i] == HIGH) ? led_states[i] = LOW : led_states[i] = HIGH;
       (led_states[i] == HIGH) ? sendMessage(msg_led_on, i) : sendMessage(msg_led_off, i);
+    }
+    else
+    {
+      Serial.print(getNewMessage(i));
     }
   }
 
@@ -246,6 +240,10 @@ void setup() {
 
   //5 blinks indicates successfull wifi connection
   blink(5);
+
+  //Start the server
+  wifiServer.begin();
+  Serial.println("Server started");
 }
 
 //--------------------Main program--------------------
@@ -271,6 +269,6 @@ void loop() {
    */
 
   testLogic();
-
+  
   delay(10);
 }
