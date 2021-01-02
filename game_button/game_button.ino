@@ -10,10 +10,8 @@ const int BTN_PIN = 14;
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
 const char* password = "";
-//const int WIFI_PORT = 80;
 
 //Wifi related variables:
-//WiFiServer wifiServer(WIFI_PORT);
 WiFiClient wifiClient;
 const char* clientAddress = "192.168.1.115";
 const int clientPort = 80;

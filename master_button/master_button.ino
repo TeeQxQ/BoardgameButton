@@ -26,7 +26,7 @@ bool blink_enabled = false;
 const long debounceDelay_ms = 500;
 
 //Global variables:
-//volatile byte interruptCounter = 0;
+volatile byte interruptCounter = 0;
 int btn_state = HIGH;
 int blink_state = -1;
 long lastDebounceTime = 0;
@@ -71,16 +71,31 @@ void handleBlinking()
   }
 }
 
-//Interrupt handler routine
-//Handles button press on this device
+//Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
-  if((millis() - lastDebounceTime) > debounceDelay_ms)
+  interruptCounter++;
+}
+
+//Handles button press
+void handleButtonPress()
+{
+  if(interruptCounter > 0)
   {
-    input_msgs[-1] = msg_btn_pressed_short;
-    lastDebounceTime = millis();
-    Serial.println("My button pressed");
+    interruptCounter = 0;
+    if((millis() - lastDebounceTime) > debounceDelay_ms)
+    {
+      input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_short;
+      lastDebounceTime = millis();
+      Serial.println("My button pressed");
+    }
   }
+}
+
+void handleMessage(const String msg)
+{
+  if (msg == msg_led_on) digitalWrite(LED_PIN, HIGH);
+  if (msg == msg_led_off) digitalWrite(LED_PIN, LOW);
 }
 
 //Check new clients 
@@ -160,7 +175,7 @@ String getNewMessage(int index, bool clear = false)
 //Clear all new messages from memory
 void clearNewMessages()
 {
-  for (size_t i = 0; i < MAX_NOF_CLIENTS; i++)
+  for (size_t i = 0; i < MAX_NOF_CLIENTS +1; i++)
   {
     input_msgs[i] = "";
   }
@@ -169,7 +184,13 @@ void clearNewMessages()
 //Send message to the client
 int sendMessage(const String newMessage, size_t atIndex)
 {
-  if(clients[atIndex] != NULL && clients[atIndex]->connected())
+  if(atIndex == MAX_NOF_CLIENTS)
+  {
+    //This is the master button itself
+    handleMessage(newMessage);
+    return 0;
+  }
+  else if(clients[atIndex] != NULL && clients[atIndex]->connected())
   {
     clients[atIndex]->println(newMessage);
     Serial.println("Message sent");
@@ -256,6 +277,9 @@ void loop() {
   //Check if new clients are available and store them
   if (checkNewClients() != 0) Serial.println("Error while adding client");
 
+  //Handle buttons
+  handleButtonPress();
+  
   //Check whether clients have new messages
   checkNewMessages();
 
