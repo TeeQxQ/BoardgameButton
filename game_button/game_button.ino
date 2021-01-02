@@ -132,14 +132,12 @@ int checkNewMessages()
   {
     while (wifiClient.available())
     {
-      messageToRead = wifiClient.readStringUntil('\n');
-      Serial.print("New message received: ");
-      Serial.println(messageToRead);
+      char c = wifiClient.read();
+      if (!(c == '\n' || c == '\r')) messageToRead += String(c);
     }
   }
   else
   {
-    Serial.println("Main button was lost");
     return 1;
   }
   return 0;
@@ -201,7 +199,7 @@ void setup() {
     delay(3000);
     Serial.println("Trying to connect wifi...");
   }
-  Serial.print("\nConnected! My ip: ");
+  Serial.print("\nWifi Connected! My ip: ");
   Serial.println(WiFi.localIP());
   Serial.println("");
 
@@ -225,6 +223,8 @@ void loop() {
     //While connection to the main button is alive:
     while(wifiClient.connected())
     {
+      delay(10);
+
       //Handle buttons
       handleButtonPress();
 
@@ -232,13 +232,14 @@ void loop() {
       handleBlinking();
       
       //Read if there are any new messages from the main button
-      if (!checkNewMessages()) Serial.println("Error while reading new messages.");
+      if (checkNewMessages() != 0) Serial.println("Error while reading new messages.");
 
       //Handle new messages
-      if (!handleNewMessages()) Serial.println("Error while handling new messages");
+      if (handleNewMessages() != 0) Serial.println("Error while handling new messages");
 
       //Send new messages
-      if (sendMessage()) Serial.println("Error while sending message.");
+      if (sendMessage() != 0) Serial.println("Error while sending message.");
+
     }
   }
   
