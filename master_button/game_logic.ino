@@ -9,6 +9,8 @@ void gameLogic()
   Serial.println(led_states[0]);
   Serial.println(getNewMessage(0));
 
+  Serial.print("Testi");
+
   /*
    millis();
    aikaa kulut > raja
