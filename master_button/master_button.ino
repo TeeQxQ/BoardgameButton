@@ -23,13 +23,19 @@ const int blinkDelay_ms = 500;
 bool blink_enabled = false;
 
 //Button related parameters
-const long debounceDelay_ms = 500;
+volatile byte btn_pressed_counter = 0;
+volatile byte btn_released_counter = 0;
+int btn_state = HIGH;
+unsigned long btn_pressed_time_ms = 0;
+unsigned long btn_released_time_ms = 0;
+const unsigned long btn_long_press_threshold_ms = 1000;
+const unsigned long debounceDelay_ms = 50;
+long lastDebounceTime_ms = 0;
 
 //Global variables:
 volatile byte interruptCounter = 0;
-int btn_state = HIGH;
+
 int blink_state = -1;
-long lastDebounceTime = 0;
 long lastBlinkTime = 0;
 
 //Game logic related variables:
@@ -74,21 +80,50 @@ void handleBlinking()
 //Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
-  interruptCounter++;
+  if (digitalRead(BTN_PIN) == HIGH)
+  {
+    btn_released_counter++;
+  }
+  else
+  {
+    btn_pressed_counter++;
+  }
 }
 
 //Handles button press
 void handleButtonPress()
 {
-  if(interruptCounter > 0)
+  if (btn_released_counter > 0)
   {
-    interruptCounter = 0;
-    if((millis() - lastDebounceTime) > debounceDelay_ms)
+    if((millis() - lastDebounceTime_ms) > debounceDelay_ms)
+    {
+      btn_state = HIGH;
+      btn_released_time_ms = millis();
+      lastDebounceTime_ms = millis();
+    }
+    btn_released_counter = 0;
+
+    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_ms)
+    {
+      input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_long;
+      Serial.println("Long button press occured");
+    }
+    else
     {
       input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_short;
-      lastDebounceTime = millis();
-      Serial.println("My button pressed");
+      Serial.println("Short button press occured");
     }
+    
+  }
+  else if (btn_pressed_counter > 0)
+  {
+    if((millis() - lastDebounceTime_ms) > debounceDelay_ms)
+    {
+      btn_state = LOW;
+      btn_pressed_time_ms = millis();
+      lastDebounceTime_ms = millis();
+    }
+    btn_pressed_counter = 0;
   }
 }
 
@@ -219,9 +254,13 @@ void testLogic()
       (led_states[i] == HIGH) ? led_states[i] = LOW : led_states[i] = HIGH;
       (led_states[i] == HIGH) ? sendMessage(msg_led_on, i) : sendMessage(msg_led_off, i);
     }
+    else if (getNewMessage(i) == msg_btn_pressed_long)
+    {
+      //Serial.println("long press");
+    }
     else
     {
-      Serial.print(getNewMessage(i));
+      //Serial.println(getNewMessage(i));
     }
   }
 
@@ -235,7 +274,7 @@ void setup() {
 
   digitalWrite(LED_PIN, LOW);  //turn off by LOW
 
-  attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, CHANGE);
 
   //Serial connection for debugging purposes
   Serial.begin(9600);
