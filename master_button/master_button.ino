@@ -9,7 +9,7 @@ const int BTN_PIN = 14;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
-const char* password = "rutaQlli";
+const char* password = "";
 const int WIFI_PORT = 80;
 const int MAX_NOF_CLIENTS = 3;
 
@@ -26,11 +26,12 @@ bool blink_enabled = false;
 volatile byte btn_pressed_counter = 0;
 volatile byte btn_released_counter = 0;
 int btn_state = HIGH;
-unsigned long btn_pressed_time_ms = 0;
-unsigned long btn_released_time_ms = 0;
-const unsigned long btn_long_press_threshold_ms = 1000;
-const unsigned long debounceDelay_ms = 50;
-unsigned long lastDebounceTime_ms = 0;
+volatile unsigned long btn_pressed_time_ms = 0;
+volatile unsigned long btn_released_time_ms = 0;
+const unsigned long btn_long_press_threshold_MIN_ms = 1000;
+const unsigned long btn_long_press_threshold_MAX_ms = 2000;
+const unsigned long debounceDelay_ms = 120;
+volatile unsigned long lastDebounceTime_ms = 0;
 
 //Global variables:
 //volatile byte interruptCounter = 0;
@@ -41,21 +42,6 @@ long lastBlinkTime = 0;
 //Game logic related variables:
 int led_states[MAX_NOF_CLIENTS +1];
 int GREEN = -1;
-
-/*
-int lista[3];
-
-lista[0] = 20;
-lista[1] = 23;
-lista[2] = 9789;
-
-int value = lista[2];
-
-for (int i = 2; i >= 0; i--)
-{
-  Serial.println(lista[i]);
-}
-*/
 
 //--------------------Functions--------------------
 
@@ -95,14 +81,23 @@ void handleBlinking()
 //Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
-  if (digitalRead(BTN_PIN) == HIGH)
+  unsigned long currentTime_ms = millis();
+  
+  if (currentTime_ms - lastDebounceTime_ms > debounceDelay_ms)
   {
-    btn_released_counter++;
+    if (digitalRead(BTN_PIN) == HIGH)
+    {
+      btn_released_counter++;
+      btn_released_time_ms = currentTime_ms;
+    }
+    else
+    {
+      btn_pressed_counter++;
+      btn_pressed_time_ms = currentTime_ms;
+    }
+    lastDebounceTime_ms = currentTime_ms;
   }
-  else
-  {
-    btn_pressed_counter++;
-  }
+  
 }
 
 //Handles button press
@@ -110,36 +105,29 @@ void handleButtonPress()
 {
   if (btn_released_counter > 0)
   {
-    if((millis() - lastDebounceTime_ms) > debounceDelay_ms)
+    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_MIN_ms &&
+        btn_released_time_ms - btn_pressed_time_ms < btn_long_press_threshold_MAX_ms)
     {
-      btn_state = HIGH;
-      btn_released_time_ms = millis();
-      lastDebounceTime_ms = millis();
-    }
-    btn_released_counter = 0;
-
-    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_ms)
-    {
-      btn_pressed_time_ms = millis();
       input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_long;
-      Serial.println("Long button press occured");
+      Serial.println("Long btn press");
     }
-    else
+    else if (btn_released_time_ms - btn_pressed_time_ms <= btn_long_press_threshold_MIN_ms)
     {
       input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_short;
-      Serial.println("Short button press occured");
+      Serial.println("Short btn press");
     }
-    
+    btn_released_counter = 0;
+    btn_pressed_counter = 0;
   }
   else if (btn_pressed_counter > 0)
   {
-    if((millis() - lastDebounceTime_ms) > debounceDelay_ms)
+    if (millis() - btn_pressed_time_ms > btn_long_press_threshold_MAX_ms)
     {
-      btn_state = LOW;
-      btn_pressed_time_ms = millis();
-      lastDebounceTime_ms = millis();
+      input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_short;
+      Serial.println("Short btn press without release event");
+      btn_pressed_counter = 0;
     }
-    btn_pressed_counter = 0;
+    
   }
 }
 
@@ -364,16 +352,9 @@ void loop() {
   //Check whether clients have new messages
   checkNewMessages();
 
-  /*
-   * 
-   * Handle messages and game logic here
-   * Test example testLogic() next:
-   * 
-   */
-  
-
   //Handle messages and game logic here
   gameLogic();
+
   //testLogic();
   
   delay(10);
