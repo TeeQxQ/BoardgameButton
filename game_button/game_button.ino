@@ -9,7 +9,7 @@ const int BTN_PIN = 14;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
-const char* password = "";
+const char* password = "rutaQlli";
 
 //Wifi related variables:
 WiFiClient wifiClient;
@@ -33,6 +33,9 @@ long lastBlinkTime = 0;
 //Communication related:
 String messageToSent = "";
 String messageToRead = "";
+
+//Game related:
+const String myColor = msg_color_green; //green
 
 //Blink the led <times> times
 void blink(int times)
@@ -156,6 +159,10 @@ int handleNewMessages(bool clear = true)
     {
       Serial.println("led off");
       digitalWrite(LED_PIN, LOW);
+    }
+    else if (messageToRead == msg_ask_color)
+    {
+      messageToSent = myColor;
     }
     else
     {

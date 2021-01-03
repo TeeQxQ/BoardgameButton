@@ -9,7 +9,7 @@ const int BTN_PIN = 14;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
-const char* password = "";
+const char* password = "rutaQlli";
 const int WIFI_PORT = 80;
 const int MAX_NOF_CLIENTS = 3;
 
@@ -30,17 +30,32 @@ unsigned long btn_pressed_time_ms = 0;
 unsigned long btn_released_time_ms = 0;
 const unsigned long btn_long_press_threshold_ms = 1000;
 const unsigned long debounceDelay_ms = 50;
-long lastDebounceTime_ms = 0;
+unsigned long lastDebounceTime_ms = 0;
 
 //Global variables:
-volatile byte interruptCounter = 0;
+//volatile byte interruptCounter = 0;
 
 int blink_state = -1;
 long lastBlinkTime = 0;
 
 //Game logic related variables:
 int led_states[MAX_NOF_CLIENTS +1];
+int GREEN = -1;
 
+/*
+int lista[3];
+
+lista[0] = 20;
+lista[1] = 23;
+lista[2] = 9789;
+
+int value = lista[2];
+
+for (int i = 2; i >= 0; i--)
+{
+  Serial.println(lista[i]);
+}
+*/
 
 //--------------------Functions--------------------
 
@@ -105,6 +120,7 @@ void handleButtonPress()
 
     if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_ms)
     {
+      btn_pressed_time_ms = millis();
       input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_long;
       Serial.println("Long button press occured");
     }
@@ -244,12 +260,32 @@ int sendMessage(const String newMessage, size_t atIndex)
 //This is only for testing purposes
 void testLogic()
 {
+  
   //Read messages
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++)
   {
+
+    if (clients[i] != NULL && GREEN == -1)
+    {
+      sendMessage(msg_ask_color, i);
+    }
+    
     //Handle button press
     if (getNewMessage(i) == msg_btn_pressed_short)
     {
+      /*
+      if (asia = true)
+      {
+        tee tämä
+      }
+      else
+      {
+        tee toisin
+      }
+
+      (asia == true) ? tee tämä : tee toisin
+      */
+      
       //Send message to change led state
       (led_states[i] == HIGH) ? led_states[i] = LOW : led_states[i] = HIGH;
       (led_states[i] == HIGH) ? sendMessage(msg_led_on, i) : sendMessage(msg_led_off, i);
@@ -257,6 +293,12 @@ void testLogic()
     else if (getNewMessage(i) == msg_btn_pressed_long)
     {
       //Serial.println("long press");
+    }
+    else if (getNewMessage(i) == msg_color_green)
+    {
+      GREEN = i;
+      Serial.print("Vihree: ");
+      Serial.println(i);
     }
     else
     {
@@ -322,8 +364,6 @@ void loop() {
   //Check whether clients have new messages
   checkNewMessages();
 
-  //Interrupt handler adds messages from this device
-
   /*
    * 
    * Handle messages and game logic here
@@ -331,7 +371,9 @@ void loop() {
    * 
    */
 
-  testLogic();
+  //Handle messages and game logic here
+  gameLogic();
+  //testLogic();
   
   delay(10);
 }
