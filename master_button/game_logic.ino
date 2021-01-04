@@ -21,7 +21,17 @@ void gameLogic(){
 void playerOrder(){
   
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
-    if (player_order[0] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
+    if (i == MAX_NOF_CLIENTS && player_order[i] != -1){
+      all_passed = false;
+      Serial.print("player order selected order is: ");
+      for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
+        sendMessage(msg_led_off, i);
+        passed_players[i] = false;
+        Serial.print(player_order[i]);    
+      }
+      Serial.print("");
+    }
+    else if (player_order[0] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
       player_order[0] = i;
       Serial.println ("First player is: " + pelaajat [i]);
       sendMessage(msg_led_on, i);
@@ -45,14 +55,7 @@ void playerOrder(){
       sendMessage(msg_led_on, i);
       passed_players[i] = true;
     }
-    else if (i == MAX_NOF_CLIENTS && player_order[i] != -1){
-      all_passed = false;
-      Serial.println("player order selected");
-      for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
-        sendMessage(msg_led_off, i);
-        passed_players[i] = false;
-      }   
-    }
+    
   }
   clearNewMessages();  
 }
@@ -64,3 +67,5 @@ void playPhase(){
   
   //Serial.print("Täällä pyöritään!");
 }
+
+
