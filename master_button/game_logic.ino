@@ -1,10 +1,10 @@
 //Game variables
-int GREEN = 0;
-int RED = 1;
-int BLUE = 2;
-int YELLOW = 3;
+String green_time;
+String red_time;
+String blue_time; 
+String yellow_time;
 
-String pelaajat [MAX_NOF_CLIENTS +1] = {"green", "red", "blue", "yellow"}; 
+String pelaajat [MAX_NOF_CLIENTS +1] = {"green", "red", "blue", "yellow"}; // Tarvitaan koodia: kun nappi liittyy, kertoo se, mkä on sen veri ja väri tallennetaan listaan liittymisjärjestyksessä 
 
 boolean all_passed = true;
 boolean passed_players[MAX_NOF_CLIENTS +1] = {false, false, false, false};
@@ -21,6 +21,18 @@ boolean turnBegings = true;
 String turnLength [MAX_NOF_CLIENTS +1];
 boolean message = false;
 boolean blinking;
+
+//-----Googleen liittyvät arvot
+#include <WiFiClientSecure.h>
+const char* host = "script.google.com";
+const int httpsPort = 443;
+String readString;
+WiFiClientSecure client;
+const char* fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F EF F6";
+String GAS_ID = "AKfycbyyMIrQdgzFpbFaOPDEEMih1gN-afdZAdnqPT-_egqosxMO9NBL";  // Replace by your GAS service id
+
+
+
 void gameLogic(){
   if (all_passed == true) playerOrder();
   if (all_passed == false) playPhase();
@@ -94,20 +106,22 @@ void playPhase(){
       }
             
       if (passed_players[i] == true){ //Jos pelaaja passanut, tallennetaan arvo "0"
-        passed(i);    
+        turnLength[i] = "0";
+        turnBegings = true; 
+        turnDone_player [i] = true;
+        Serial.println("player is passed");
+        Serial.println(pelaajat [player_order[i]]); 
+        Serial.println("");    
       }
       else if (getNewMessage(player_order[i]) == msg_btn_pressed_short){
         saveTurnLength(i);
         Serial.println("TURN END");
-        Serial.println(i); 
-        Serial.println(length_of_turn_s);
+
       }
       else if (getNewMessage(player_order[i]) == msg_btn_pressed_long){
+        Serial.println("player pass");
         saveTurnLength(i);
         passed_players[i] = true;  
-        Serial.println("PASS player");
-        Serial.println(i); 
-        Serial.println(length_of_turn_s);
       }
       
       break;
@@ -116,7 +130,7 @@ void playPhase(){
  
   // ------ kaikki tehneet vuoronsa ------
   if (turnDone_player[0] == true && turnDone_player[1] == true && turnDone_player[2] == true && turnDone_player[3] == true){ 
-    sendData ("KISSA");
+    send_data();
 
     Serial.println("Round ended");
     for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
@@ -134,15 +148,6 @@ void playPhase(){
 }
 
 
-
-void passed(int i){
-  turnLength[i] = "0";
-  turnBegings = true; 
-  turnDone_player [i] = true;
-  Serial.println("player is passed");
-  Serial.println(i); 
-}
-
 void saveTurnLength(int i){
   endTime = millis ();
   length_of_turn_s = (endTime - startTime) / 1000;
@@ -150,10 +155,68 @@ void saveTurnLength(int i){
   sendMessage(msg_led_off, player_order[i]);
   turnBegings = true;
   turnDone_player [i] = true;
+  Serial.println(pelaajat [player_order[i]]); 
+  Serial.println(length_of_turn_s);
+  Serial.println("");
 }
 
-void sendData (String i){
-  Serial.println ("send data");
+void send_data (){
+  client.setInsecure();
+  Serial.print("connecting to ");
+  Serial.println(host);
+  if (!client.connect(host, httpsPort)) {
+    Serial.println("connection failed");
+    return;
+  }
+
+  if (client.verify(fingerprint, host)) {
+  Serial.println("certificate matches");
+  } else {
+  Serial.println("certificate doesn't match");
+  }
+  
+  for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
+    if (pelaajat [player_order[i]].equals("green"))green_time = turnLength[i];
+    if (pelaajat [player_order[i]].equals("red")) red_time = turnLength[i];
+    if (pelaajat [player_order[i]].equals("blue")) blue_time = turnLength[i];
+    if (pelaajat [player_order[i]].equals("yellow")) yellow_time = turnLength[i];
+  }
+  
+  String url = "/macros/s/" + GAS_ID + "/exec?green=" + green_time + "&red=" + red_time+ "&blue=" + blue_time + "&yellow=" + yellow_time;
+  Serial.print("requesting URL: ");
+  Serial.println(url);
+
+  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+         "Host: " + host + "\r\n" +
+         "User-Agent: BuildFailureDetectorESP8266\r\n" +
+         "Connection: close\r\n\r\n");
+
+  Serial.println("request sent");
+  while (client.connected()) {
+    String line = client.readStringUntil('\n');
+    if (line == "\r") {
+      Serial.println("headers received");
+      break;
+    }
+  }
+    String line = client.readStringUntil('\n');
+  if (line.startsWith("{\"state\":\"success\"")) {
+  Serial.println("esp8266/Arduino CI successfull!");
+  } else {
+  Serial.println("esp8266/Arduino CI has failed");
+  }
+  Serial.println("reply was:");
+  Serial.println("==========");
+  Serial.println(line);
+  Serial.println("==========");
+  Serial.println("closing connection");
+
+  Serial.println ("green: " + green_time);
+  Serial.println ("red: " + red_time);
+  Serial.println ("blue: " + blue_time);
+  Serial.println ("yellow :" + yellow_time);
+
+  
 }
 
 void clearOrder(){
