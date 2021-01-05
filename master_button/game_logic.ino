@@ -34,10 +34,10 @@ void playerOrder(){
       all_passed = false;
       blinking = true;
       turnBegings = true;
+      clearPasses();
       Serial.print("player order selected order is: ");
       for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
         sendMessage(msg_led_off, i);
-        passed_players[i] = false;
         Serial.println(player_order[i]);    
       }
       Serial.println("");
@@ -85,8 +85,6 @@ void playPhase(){
     turnBegings = false;
     message = true;
   }
-  
-  //if (passed_players[1] == true)Serial.println("Passannut tassa, jotain mataa");
 
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
     if (turnDone_player [i] == false){
@@ -100,9 +98,16 @@ void playPhase(){
       }
       else if (getNewMessage(player_order[i]) == msg_btn_pressed_short){
         saveTurnLength(i);
+        Serial.println("TURN END");
+        Serial.println(i); 
+        Serial.println(length_of_turn_s);
       }
       else if (getNewMessage(player_order[i]) == msg_btn_pressed_long){
-        savePass(i);
+        saveTurnLength(i);
+        passed_players[i] = true;  
+        Serial.println("PASS player");
+        Serial.println(i); 
+        Serial.println(length_of_turn_s);
       }
       
       break;
@@ -121,10 +126,7 @@ void playPhase(){
     if (passed_players[0] == true && passed_players[1] == true && passed_players[2] == true && passed_players[3] == true){ 
       all_passed = true;
       clearOrder();
-      Serial.println("playPhase ended");
-      for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
-        passed_players[i] = false;
-      }
+      clearPasses();
     }
   }
   clearNewMessages();         
@@ -148,24 +150,6 @@ void saveTurnLength(int i){
   sendMessage(msg_led_off, player_order[i]);
   turnBegings = true;
   turnDone_player [i] = true;
-  passed_players[1] = true;
-  Serial.println("TURN END");
-  Serial.println(i); 
-  Serial.println(length_of_turn_s);
-}
-
-void savePass(int i){
-  endTime = millis ();
-  length_of_turn_s = (endTime - startTime) / 1000;
-  turnLength[i] = String(length_of_turn_s, DEC);
-  sendMessage(msg_led_off, player_order[i]);
-  turnBegings = true; 
-  turnDone_player [i] = true;
-  passed_players[i] = true;
-  
-  Serial.println("PASS player");
-  Serial.println(i); 
-  Serial.println(length_of_turn_s); 
 }
 
 void sendData (String i){
@@ -176,4 +160,10 @@ void clearOrder(){
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
     player_order[i] = -1;    
    }  
+}
+
+void clearPasses(){
+  for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
+    passed_players[i] = false;
+  }
 }
