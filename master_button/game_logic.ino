@@ -20,7 +20,7 @@ int length_of_turn_s;
 boolean turnBegings = true;
 String turnLength [MAX_NOF_CLIENTS +1];
 boolean message = false;
-
+boolean blinking;
 void gameLogic(){
   if (all_passed == true) playerOrder();
   if (all_passed == false) playPhase();
@@ -32,13 +32,15 @@ void playerOrder(){
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
     if (i == MAX_NOF_CLIENTS && player_order[i] != -1){
       all_passed = false;
+      blinking = true;
+      turnBegings = true;
       Serial.print("player order selected order is: ");
       for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
         sendMessage(msg_led_off, i);
         passed_players[i] = false;
-        Serial.print(player_order[i]);    
+        Serial.println(player_order[i]);    
       }
-      Serial.print("");
+      Serial.println("");
     }
     else if (player_order[0] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
       player_order[0] = i;
@@ -71,83 +73,44 @@ void playerOrder(){
 
 //-----------pelivaihe----------------
 void playPhase(){
-  // laitetaan tähän, että blinkkaa 5 kertaa jokaista  nappia kierroksen alun merkiksi
-
+   // laitetaan tähän, että blinkkaa 5 kertaa jokaista  nappia kierroksen alun merkiksi
+   
+  if (blinking == true){
+    blinking = false;
+    blink(5);      
+  }
+  
   if(turnBegings == true){ 
     startTime = millis ();
     turnBegings = false;
     message = true;
   }
-//--------- Pelaaja 1 ---------
-  if (turnDone_player [0] == false){
-    if (message == true && passed_players[0] == false){
-      sendMessage(msg_led_on, player_order[0]);
-      message = false;
-    }
-    
-    if (passed_players[0] == true){ //Jos pelaaja passanut, tallennetaan arvo "0"
-      passed(0);      
-    }
-    else if (getNewMessage(player_order[0]) == msg_btn_pressed_short){
-      saveTurnLength(0);
-    }
-    else if (getNewMessage(player_order[0]) == msg_btn_pressed_long){
-      savePass(0);
-    }
-  }
-  //--------- Pelaaja 2 ---------
-  else if (turnDone_player [1] == false){
-    if (message == true && passed_players[1] == false){
-      sendMessage(msg_led_on, player_order[1]);
-      message = false;
-    }
-    
-    if (passed_players[1] == true){ 
-      passed(1);      
-    }
-    else if (getNewMessage(player_order[1]) == msg_btn_pressed_short){
-      saveTurnLength(1);
-    }
-    else if (getNewMessage(player_order[1]) == msg_btn_pressed_long){
-      savePass(1);
+  
+  //if (passed_players[1] == true)Serial.println("Passannut tassa, jotain mataa");
+
+  for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
+    if (turnDone_player [i] == false){
+      if (message == true && passed_players[i] == false){
+        sendMessage(msg_led_on, player_order[i]);
+        message = false;
+      }
+            
+      if (passed_players[i] == true){ //Jos pelaaja passanut, tallennetaan arvo "0"
+        passed(i);    
+      }
+      else if (getNewMessage(player_order[i]) == msg_btn_pressed_short){
+        saveTurnLength(i);
+      }
+      else if (getNewMessage(player_order[i]) == msg_btn_pressed_long){
+        savePass(i);
+      }
+      
+      break;
     }
   }
-  //--------- Pelaaja 3 ---------
-  else if (turnDone_player [2] == false){
-    if (message == true && passed_players[2] == false){
-      sendMessage(msg_led_on, player_order[2]);
-      message = false;
-    }
-    
-    if (passed_players[2] == true){ 
-      passed(2);      
-    }
-    else if (getNewMessage(player_order[2]) == msg_btn_pressed_short){
-      saveTurnLength(2);
-    }
-    else if (getNewMessage(player_order[2]) == msg_btn_pressed_long){
-      savePass(2);
-    }
-  }
-  //--------- Pelaaja 4 ---------
-  else if (turnDone_player [3] == false){
-    if (message == true && passed_players[3] == false){
-      sendMessage(msg_led_on, player_order[3]);
-      message = false;
-    }
-    
-    if (passed_players[3] == true){ //Jos pelaaja passanut, tallennetaan arvo "0")
-      passed(3);      
-    }
-    else if (getNewMessage(player_order[3]) == msg_btn_pressed_short){
-      saveTurnLength(3);
-    }
-    else if (getNewMessage(player_order[3]) == msg_btn_pressed_long){
-      savePass(3);
-    }
-  }
+ 
   // ------ kaikki tehneet vuoronsa ------
-  else if (turnDone_player[0] == true && turnDone_player[1] == true && turnDone_player[2] == true && turnDone_player[3] == true){ 
+  if (turnDone_player[0] == true && turnDone_player[1] == true && turnDone_player[2] == true && turnDone_player[3] == true){ 
     sendData ("KISSA");
 
     Serial.println("Round ended");
