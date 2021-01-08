@@ -1,8 +1,7 @@
 #include "ArduinoJson.h"
 #include "ESP8266WiFi.h"
-#include "messages.h"
-#include "colors.h"
 #include "events.h"
+#include "effects.h"
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
@@ -21,11 +20,6 @@ const int MAX_NOF_CLIENTS = 3;
 WiFiServer wifiServer(WIFI_PORT);
 WiFiClient *clients[MAX_NOF_CLIENTS] = { NULL };
 String input_msgs[MAX_NOF_CLIENTS +1];     //Messages from myself are stored also (old)
-
-//Arrays to buffer events to be send/received
-//There is slot for every defined color
-Event receivedEvents[nofColors] = { UNKNOWN };
-Event outgoingEvents[nofColors] = { UNKNOWN };
 
 //Blinking related parameters
 const int blinkDelay_ms = 500;
@@ -55,46 +49,40 @@ int led_states[MAX_NOF_CLIENTS +1];
 
 //--------------------Event handling--------------------
 
-void clearOutgoingEvents()
+//Set new event to be sent later to the <color>
+void setEvent(Color color, Event event)
 {
-  for(size_t color = 0; color < nofColors; color++)
-  {
-    outgoingEvents[static_cast<Color>(color)] = UNKNOWN;
-  }
+  outgoingEvents[color] = event;
 }
 
-void clearReceivedEvents()
+//Get the latest available event from the <color>
+Event getEvent(Color color)
 {
-  for(size_t color = 0; color < nofColors; color++)
-  {
-    receivedEvents[static_cast<Color>(color)] = UNKNOWN;
-  }
+  return receivedEvents[static_cast<int>(color)];
 }
 
 //Sends a single event to a single client
-int sendEvent(Color color, Event event)
+int sendEvent(const Color color, const Event event)
 {
   //Don't send unknown events
-  if (event == UNKNOWN) return -1;
+  if (event.type == UNKNOWN) return -1;
   
   //Sends message to the master button itself
   if(color == MASTER)
   {
-    //This is the master button itself
-    //handleMessage(newMessage);
-    //TODO
-    //handleEvent(event);
+    //Store the event
+    receivedEvents[color] = event;
     return 0;
   }
   else if(clients[color] != NULL && clients[color]->connected())
   {
-    sendMsgCommon(*clients[color], color, event);
-    Serial.println("Message sent");
+    sendEventCommon(*clients[color], color, event);
+    //Serial.println("Event sent.");
   }
   else
   {
     Serial.print("Client at index ");
-    Serial.print(color);
+    Serial.print(static_cast<int>(color));
     Serial.println(" is not connected!");
     return -1;
   }
@@ -103,7 +91,7 @@ int sendEvent(Color color, Event event)
 }
 
 //Send all buffered events to all available clients
-int sendAllEvents()
+void sendAllEvents()
 {
   for (size_t color = 0; color < nofColors; color++)
   {
@@ -112,39 +100,25 @@ int sendAllEvents()
       sendEvent(static_cast<Color>(color), outgoingEvents[color]);
     }
   }
-  return 0;
 }
 
-//Set new event to be sent later to the <color>
-int setEvent(Color color, Event event)
-{
-  outgoingEvents[color] = event;
-  return 0;
-}
 
 //Receive new event (if available) from the <color> client
 Event receiveEvent(Color color)
 {
   if (clients[color] != NULL && clients[color]->available())
   {
-    return static_cast<Event>(receiveEventCommon(*clients[color]));
+    return receiveEventCommon(*clients[static_cast<int>(color)]);
   }
 }
 
 //Receive all new events from available clients
-int receiveAllEvents()
+void receiveAllEvents()
 {
   for(size_t color = 0; color < nofColors; color++)
   {
-    receivedEvents[static_cast<Color>(color)] = receiveEvent(static_cast<Color>(color));
+    receivedEvents[color] = receiveEvent(static_cast<Color>(color));
   }
-  return 0;
-}
-
-//Get new event from the event buffer
-Event getEvent(Color color)
-{
-  return receivedEvents[color];
 }
 
 
@@ -161,7 +135,7 @@ void blink(int times)
     digitalWrite(LED_PIN, LOW);
   }
 }
-
+/*
 //Handles how blinking works on this device
 void handleBlinking()
 {
@@ -182,7 +156,7 @@ void handleBlinking()
     }
   }
 }
-
+*/
 //--------------------Interrupts--------------------
 
 //Handles interrupt caused by the button press
@@ -436,7 +410,7 @@ void setup() {
     
   while(WiFi.status() != WL_CONNECTED)
   {
-    delay(3000);
+    delay(1000);
     Serial.println("Trying to connect wifi...");
   }
   Serial.print("\nWifi connected! My ip: ");
@@ -463,14 +437,20 @@ void loop() {
 
   //Handle buttons
   handleButtonPress();
+
+  //clearReceivedEvents();
+  //receiveAllEvents();
   
   //Check whether clients have new messages
   checkNewMessages();
 
-  //Handle messages and game logic here
+  //Handle gameplay here
   //gameLogic();
 
   testLogic();
+
+  //sendAllEvents();
+  //clearOutgoingEvents();
   
   delay(10);
 }

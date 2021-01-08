@@ -8,55 +8,19 @@
  *  {
  *   "color": 0,
  *   "event": 2,
- *   "duration": 100
+ *   "data": 100
  *  }
  *  
  */
+
+namespace msg
+{
 
 const int msgCapacity = 48;
 StaticJsonDocument<msgCapacity> msg;
 DeserializationError err;
 
-//Common function for sending events to the client/master button
-template <typename ClientType>
-void sendMsgCommon(ClientType client, const int color, const int event, const int duration = 0)
-{
-  //Construct a message
-  msg["color"] = color;
-  msg["event"] = event;
-  msg["duration"] = duration;
-
-  //Serialize the message and send it
-  serializeJson(msg, client);
 }
-
-//Function for receiving messages from a client/server button
-template <typename ClientType>
-bool receiveMsgCommon(ClientType client)
-{
-  err = deserializeJson(msg, client);
-  if (err)
-  {
-    //Serial.print(F("deserializeJson() failed: "));
-    //Serial.println(err.f_str());
-    return -1;
-  }
-
-  return 0;
-}
-
-template <typename ClientType>
-int receiveEventCommon(ClientType client)
-{
-  if (receiveMsgCommon(client) != 0)
-  {
-    //On error
-    return -1;
-  }
-
-  return msg["event"];
-}
-
 //------------------------------------------------
 
 //Old messages:
