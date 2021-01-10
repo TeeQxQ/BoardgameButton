@@ -244,7 +244,8 @@ void handleEvents(const Event e)
       Serial.println("BTN SHORT");
       sendToDrive();
       //for(int i = 0; i < nofColors; i++) Serial.println(players[i].isPlaying);
-      Serial.println("Driveen meni");
+      //Serial.println("Driveen meni");
+      Serial.println(nofPlayers);
       break;
     case BTN_LONG:
       outgoingEvents[BTN_COLOR] = { LED_OFF, 0 };
@@ -401,11 +402,17 @@ int checkNewClients()
       clients[static_cast<int>(e.data)] = new WiFiClient(newClient);
       Serial.println("New client added successfully");
 
+      int indexOfColor = 0;
+      for (size_t i = 0; i< nofColors; i++)
+      {
+        if (players[i].color == static_cast<Color>(e.data)) indexOfColor = i;
+      }
+
       //Check if player reconnected
-      if (players[static_cast<int>(e.data)].isPlaying == false)
+      if (players[indexOfColor].isPlaying == false)
       {
         //Add new player to the game
-        players[static_cast<int>(e.data)].isPlaying = true;
+        players[indexOfColor].isPlaying = true;
         nofPlayers++;
 
         Serial.print("New player ");
@@ -547,9 +554,9 @@ void loop() {
   //Handle gameplay here
   //gameLogic();
 
-  //clearReceivedEvents();
+  clearReceivedEvents();
   sendAllEvents();
-  //clearOutgoingEvents();
+  clearOutgoingEvents();
   
   delay(10);
 }
