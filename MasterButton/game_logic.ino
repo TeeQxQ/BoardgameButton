@@ -1,8 +1,8 @@
 //Game variables
-String green_time;
-String red_time;
-String blue_time; 
-String yellow_time;
+//String green_time;
+//String red_time;
+//String blue_time; 
+//String yellow_time;
 
 String pelaajat [MAX_NOF_CLIENTS +1] = {"green", "red", "blue", "yellow"}; // Tarvitaan koodia: kun nappi liittyy, kertoo se, mkä on sen veri ja väri tallennetaan listaan liittymisjärjestyksessä 
 
@@ -10,7 +10,32 @@ boolean all_passed = true;
 boolean passed_players[MAX_NOF_CLIENTS +1] = {false, false, false, false};
 boolean turnDone_player[MAX_NOF_CLIENTS +1] = {false, false, false, false};
 
+/*
+typedef struct Pelaaja
+{
+  Color color;
+  bool passed;
+  int turn;
+  bool pressed;
+  bool onmukana;
+  
+} Pelaaja;
 
+Pelaaja pelaaja1;
+
+Pelaaja pelaajalista[nofColors];
+
+
+for (int color = 0; color < nofColor; color++)
+{
+  if (getEvent(color).type == BTN_SHORT)
+  {
+     pelaajalista[color].pressed = true;
+  }
+}*/
+
+
+/*
 int player_order [MAX_NOF_CLIENTS +1] = {-1, -1, -1, -1};
 
 unsigned long startTime;
@@ -32,11 +57,12 @@ const char* fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F
 String GAS_ID = "AKfycbyyMIrQdgzFpbFaOPDEEMih1gN-afdZAdnqPT-_egqosxMO9NBL";  // Replace by your GAS service id
 
 
-/*
+
 void gameLogic(){
   if (all_passed == true) playerOrder();
-  if (all_passed == false) playPhase();
-
+  if (all_passed == false) playPhase();*/
+  
+/*
 }
 //---------------Valitaan pelaajajärjestys----------------
 void playerOrder(){

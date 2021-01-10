@@ -4,6 +4,7 @@
 #include "ESP8266WiFi.h"
 #include "events.h"
 #include "messages.h"
+#include <WiFiClientSecure.h>
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
@@ -22,6 +23,22 @@ const int MAX_NOF_CLIENTS = 3;
 WiFiServer wifiServer(WIFI_PORT);
 WiFiClient *clients[nofColors] = { NULL };
 //String input_msgs[MAX_NOF_CLIENTS +1];     //Messages from myself are stored also (old)
+
+//Drive:
+WiFiClientSecure driveClient;
+const char* driveHost = "script.google.com";
+const int drivePort = 443;
+const char* fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F EF F6";
+const String GAS_ID = "AKfycbyyMIrQdgzFpbFaOPDEEMih1gN-afdZAdnqPT-_egqosxMO9NBL";
+const String url = "/macros/s/" + GAS_ID + "/exec?";
+const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nUser-Agent: BuildFailureDetectorESP8266\r\nConnection: keep-alive\r\n\r\n";
+
+String green_time = "";
+String red_time = "";
+String blue_time = "";
+String yellow_time = "";
+String white_time = "";
+
 
 //Arrays to buffer events to be send/received
 //There is slot for every defined color
@@ -229,9 +246,12 @@ void handleEvents(const Event e)
     case BTN_SHORT:
       outgoingEvents[BTN_COLOR] = { LED_ON, 0 };
       Serial.println("BTN SHORT");
+      sendToDrive();
+      Serial.println("Driveen meni");
       break;
     case BTN_LONG:
       outgoingEvents[BTN_COLOR] = { LED_OFF, 0 };
+      driveClient.stop();
       Serial.println("BTN LONG");
       break;
     case COLOR:
@@ -412,6 +432,30 @@ void removeDisconnectedClients()
   }
 }
 
+//--------------------Google Drive connection--------------------
+
+void sendToDrive (){
+
+  //Reconnect if connection lost
+  if (!driveClient.connected()) {
+    Serial.println("No connection to google drive, reconnecting...");
+    while (!driveClient.connect(driveHost, drivePort)) {
+      Serial.println("connection failed");
+    }
+    Serial.println("Google drive reconnected!");
+  }
+
+  String colorTimes ="";
+  colorTimes += "green=" + green_time;
+  colorTimes += "&blue=" + blue_time;
+  colorTimes += "&red=" + red_time;
+  colorTimes += "&white=" + white_time;
+  colorTimes += "&yellow=" + yellow_time;
+
+  driveClient.print(String("GET ") + url + colorTimes + httpString);
+  Serial.println("Request sent");
+}
+
 //This is only for testing purposes
 void testLogic()
 {
@@ -454,6 +498,23 @@ void setup() {
   //Start the server
   wifiServer.begin();
   Serial.println("Server started");
+
+  //Connect to google drive
+  Serial.print("Connecting to ");
+  Serial.println(driveHost);
+  driveClient.setInsecure();
+  while (!driveClient.connect(driveHost, drivePort)) {
+    Serial.println("connection failed");
+  }
+  Serial.println("Connected to Drive");
+  /*
+  if (driveClient.verify(fingerprint, driveHost)) 
+  {
+    Serial.println("Certificate matches");
+  } 
+  else {
+    Serial.println("Certificate doesn't match");
+  }*/
 }
 
 //--------------------Main program--------------------
@@ -471,6 +532,7 @@ void loop() {
   //Handle buttons
   handleButtonPress();
 
+  
   //Handle received events
   handleEvents(receivedEvents[static_cast<int>(BTN_COLOR)]);
 
