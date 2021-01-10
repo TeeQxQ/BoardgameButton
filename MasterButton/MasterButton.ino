@@ -63,9 +63,12 @@ volatile unsigned long lastDebounceTime_ms = 0;
 //--------------------Event sending/receiving--------------------
 
 //Set new event to be sent later to the <color>
-void setEvent(Color color, Event event)
+void setEvent(Color color, EventType type, int data = 0)
 {
-  outgoingEvents[color] = event;
+  Event e;
+  e.type = type;
+  e.data = data;
+  outgoingEvents[color] = e;
 }
 
 //Get the latest available event from the <color>
@@ -244,9 +247,6 @@ void handleEvents(const Event e)
       (ledState) ? outgoingEvents[BTN_COLOR].type = LED_ON : outgoingEvents[BTN_COLOR].type = LED_OFF;
       Serial.println("BTN SHORT");
       //sendToDrive();
-      //for(int i = 0; i < nofColors; i++) Serial.println(players[i].isPlaying);
-      //Serial.println("Driveen meni");
-      //Serial.println(nofPlayers);
       break;
     case BTN_LONG:
       (blinkEnabled) ? outgoingEvents[BTN_COLOR].type = BLINK_OFF : outgoingEvents[BTN_COLOR].type = BLINK_ON;
