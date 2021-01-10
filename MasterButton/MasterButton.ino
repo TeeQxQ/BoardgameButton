@@ -4,6 +4,7 @@
 #include "ESP8266WiFi.h"
 #include "events.h"
 #include "messages.h"
+#include "player.h"
 #include <WiFiClientSecure.h>
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
@@ -28,7 +29,6 @@ WiFiClient *clients[nofColors] = { NULL };
 WiFiClientSecure driveClient;
 const char* driveHost = "script.google.com";
 const int drivePort = 443;
-const char* fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F EF F6";
 const String GAS_ID = "AKfycbyyMIrQdgzFpbFaOPDEEMih1gN-afdZAdnqPT-_egqosxMO9NBL";
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nUser-Agent: BuildFailureDetectorESP8266\r\nConnection: keep-alive\r\n\r\n";
@@ -247,6 +247,7 @@ void handleEvents(const Event e)
       outgoingEvents[BTN_COLOR] = { LED_ON, 0 };
       Serial.println("BTN SHORT");
       sendToDrive();
+      //for(int i = 0; i < nofColors; i++) Serial.println(players[i].isPlaying);
       Serial.println("Driveen meni");
       break;
     case BTN_LONG:
@@ -403,6 +404,12 @@ int checkNewClients()
     {
       clients[static_cast<int>(e.data)] = new WiFiClient(newClient);
       Serial.println("New client added successfully");
+
+      //Add new player to the game
+      players[static_cast<int>(e.data)].isPlaying = true;
+      Serial.print("New player ");
+      Serial.print(static_cast<int>(e.data));
+      Serial.println(" added to the game");
       return 0;
     }
 
@@ -502,19 +509,15 @@ void setup() {
   //Connect to google drive
   Serial.print("Connecting to ");
   Serial.println(driveHost);
+
   driveClient.setInsecure();
   while (!driveClient.connect(driveHost, drivePort)) {
     Serial.println("connection failed");
   }
   Serial.println("Connected to Drive");
-  /*
-  if (driveClient.verify(fingerprint, driveHost)) 
-  {
-    Serial.println("Certificate matches");
-  } 
-  else {
-    Serial.println("Certificate doesn't match");
-  }*/
+
+  //Initialize player list
+  initializePlayers();
 }
 
 //--------------------Main program--------------------
