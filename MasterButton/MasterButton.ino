@@ -12,7 +12,7 @@
 //Hardware parameters:
 const int LED_PIN = 0;
 const int BTN_PIN = 14;
-const Color BTN_COLOR = MASTER;
+const Color BTN_COLOR = RED;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
@@ -66,10 +66,6 @@ volatile unsigned long lastDebounceTime_ms = 0;
 int blink_state = -1;
 long lastBlinkTime = 0;
 
-//Game logic related variables:
-//int led_states[MAX_NOF_CLIENTS +1];
-//int GREEN = -1;
-
 
 //--------------------Event sending/receiving--------------------
 
@@ -92,7 +88,7 @@ int sendEvent(const Color color, const Event event)
   if (event.type == UNKNOWN) return -1;
   
   //Sends message to the master button itself
-  if(color == MASTER)
+  if(color == BTN_COLOR)
   {
     //Store the event
     receivedEvents[color] = event;
@@ -152,7 +148,7 @@ Event receiveEvent(Color color)
   e.type = UNKNOWN;
   e.data = 0;
 
-  if(color == MASTER)
+  if(color == BTN_COLOR)
   {
     e = receivedEvents[static_cast<int>(color)];
   }
@@ -370,7 +366,7 @@ int checkNewClients()
     
     //Ask its color:
     //Construct a message
-    msg::msg["color"] = MASTER;
+    msg::msg["color"] = BTN_COLOR;
     msg::msg["event"] = static_cast<int>(COLOR);
     msg::msg["data"] = 0;
 
@@ -405,11 +401,17 @@ int checkNewClients()
       clients[static_cast<int>(e.data)] = new WiFiClient(newClient);
       Serial.println("New client added successfully");
 
-      //Add new player to the game
-      players[static_cast<int>(e.data)].isPlaying = true;
-      Serial.print("New player ");
-      Serial.print(static_cast<int>(e.data));
-      Serial.println(" added to the game");
+      //Check if player reconnected
+      if (players[static_cast<int>(e.data)].isPlaying == false)
+      {
+        //Add new player to the game
+        players[static_cast<int>(e.data)].isPlaying = true;
+        nofPlayers++;
+
+        Serial.print("New player ");
+        Serial.print(static_cast<int>(e.data));
+        Serial.println(" added to the game");
+      }
       return 0;
     }
 
@@ -518,6 +520,9 @@ void setup() {
 
   //Initialize player list
   initializePlayers();
+  //By default master button is playing
+  players[static_cast<int>(BTN_COLOR)].isPlaying = true;
+  nofPlayers++;
 }
 
 //--------------------Main program--------------------
