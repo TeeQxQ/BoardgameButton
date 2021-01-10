@@ -13,7 +13,12 @@
 const int LED_PIN = 0;
 const int BTN_PIN = 14;
 const Color BTN_COLOR = RED;
+
 bool ledState = LOW;
+bool blinkEnabled = false;
+//bool blinkState = LOW;
+const int blinkDelay_ms = 500;
+long lastBlinkTime_ms = 0;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
@@ -24,7 +29,6 @@ const int MAX_NOF_CLIENTS = 3;
 //Wifi related variables:
 WiFiServer wifiServer(WIFI_PORT);
 WiFiClient *clients[nofColors] = { NULL };
-//String input_msgs[MAX_NOF_CLIENTS +1];     //Messages from myself are stored also (old)
 
 //Drive:
 WiFiClientSecure driveClient;
@@ -40,15 +44,10 @@ String blue_time = "";
 String yellow_time = "";
 String white_time = "";
 
-
 //Arrays to buffer events to be send/received
 //There is slot for every defined color
 Event receivedEvents[nofColors] = { UNKNOWN };
 Event outgoingEvents[nofColors] = { UNKNOWN };
-
-//Blinking related parameters
-const int blinkDelay_ms = 500;
-bool blink_enabled = false;
 
 //Button related parameters
 volatile byte btn_pressed_counter = 0;
@@ -60,13 +59,6 @@ const unsigned long btn_long_press_threshold_MIN_ms = 1000;
 const unsigned long btn_long_press_threshold_MAX_ms = 2000;
 const unsigned long debounceDelay_ms = 120;
 volatile unsigned long lastDebounceTime_ms = 0;
-
-//Global variables:
-//volatile byte interruptCounter = 0;
-
-int blink_state = -1;
-long lastBlinkTime = 0;
-
 
 //--------------------Event sending/receiving--------------------
 
@@ -241,8 +233,11 @@ void handleEvents(const Event e)
     case BLINK:
       break;
     case BLINK_ON:
+      blinkEnabled = true;
       break;
     case BLINK_OFF:
+      blinkEnabled = false;
+      digitalWrite(LED_PIN, LOW);
       break;
     case BTN_SHORT:
       ledState = !ledState;
@@ -254,8 +249,8 @@ void handleEvents(const Event e)
       //Serial.println(nofPlayers);
       break;
     case BTN_LONG:
-      outgoingEvents[BTN_COLOR] = { LED_OFF, 0 };
-      driveClient.stop();
+      (blinkEnabled) ? outgoingEvents[BTN_COLOR].type = BLINK_OFF : outgoingEvents[BTN_COLOR].type = BLINK_ON;
+      //driveClient.stop();
       Serial.println("BTN LONG");
       break;
     case COLOR:
@@ -276,28 +271,21 @@ void blink(int times)
     digitalWrite(LED_PIN, LOW);
   }
 }
-/*
+
 //Handles how blinking works on this device
 void handleBlinking()
 {
-  if(blink_enabled)
+  if(blinkEnabled)
   {
-    if(millis() - lastBlinkTime > blinkDelay_ms)
+    if(millis() - lastBlinkTime_ms > blinkDelay_ms)
     {
-      blink_state = -blink_state;
-      if(blink_state > 0)
-      {
-        digitalWrite(LED_PIN, HIGH);
-      }
-      else
-      {
-        digitalWrite(LED_PIN, LOW);
-      }
-      lastBlinkTime = millis();
+      ledState = !ledState;
+      ledState ? digitalWrite(LED_PIN, HIGH) : digitalWrite(LED_PIN, LOW);
+      lastBlinkTime_ms = millis();
     }
   }
 }
-*/
+
 //--------------------Interrupts--------------------
 
 //Handles interrupt caused by the button press
@@ -557,6 +545,9 @@ void loop() {
 
   //Handle buttons
   handleButtonPress();
+
+  //Handle blinking
+  handleBlinking();
   
   //Handle received events
   handleEvents(receivedEvents[static_cast<int>(BTN_COLOR)]);
