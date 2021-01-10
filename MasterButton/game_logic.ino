@@ -32,7 +32,7 @@ const char* fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F
 String GAS_ID = "AKfycbyyMIrQdgzFpbFaOPDEEMih1gN-afdZAdnqPT-_egqosxMO9NBL";  // Replace by your GAS service id
 
 
-
+/*
 void gameLogic(){
   if (all_passed == true) playerOrder();
   if (all_passed == false) playPhase();
@@ -49,7 +49,7 @@ void playerOrder(){
       clearPasses();
       Serial.print("player order selected order is: ");
       for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
-        sendMessage(msg_led_off, i);
+        //sendMessage(msg_led_off, i);
         Serial.println(player_order[i]);    
       }
       Serial.println("");
@@ -57,25 +57,25 @@ void playerOrder(){
     else if (player_order[0] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
       player_order[0] = i;
       Serial.println ("First player is: " + pelaajat [i]);
-      sendMessage(msg_led_on, i);
+      //sendMessage(msg_led_on, i);
       passed_players[i] = true;
     }
     else if(player_order[1] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
       player_order[1] = i;
       Serial.println ("Second player is: " + pelaajat [i]);
-      sendMessage(msg_led_on, i);
+      //sendMessage(msg_led_on, i);
       passed_players[i] = true;
     }
     else if(player_order[2] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
       player_order[2] = i;
       Serial.println ("Trhird player is: " + pelaajat [i]);
-      sendMessage(msg_led_on, i);
+      //sendMessage(msg_led_on, i);
       passed_players[i] = true;
     }
     else if(player_order[3] == -1 && getNewMessage(i) == msg_btn_pressed_short && passed_players[i] == false){
       player_order[3] = i;
       Serial.println ("fourth player is: " + pelaajat [i]);
-      sendMessage(msg_led_on, i);
+      //sendMessage(msg_led_on, i);
       passed_players[i] = true;
     }
     
@@ -101,7 +101,7 @@ void playPhase(){
   for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++){
     if (turnDone_player [i] == false){
       if (message == true && passed_players[i] == false){
-        sendMessage(msg_led_on, player_order[i]);
+        //sendMessage(msg_led_on, player_order[i]);
         message = false;
       }
             
@@ -152,7 +152,7 @@ void saveTurnLength(int i){
   endTime = millis ();
   length_of_turn_s = (endTime - startTime) / 1000;
   turnLength[i] = String(length_of_turn_s, DEC);
-  sendMessage(msg_led_off, player_order[i]);
+  //sendMessage(msg_led_off, player_order[i]);
   turnBegings = true;
   turnDone_player [i] = true;
   Serial.println(pelaajat [player_order[i]]); 
@@ -230,3 +230,4 @@ void clearPasses(){
     passed_players[i] = false;
   }
 }
+*/

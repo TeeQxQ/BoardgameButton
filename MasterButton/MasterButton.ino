@@ -1,7 +1,9 @@
 #include "ArduinoJson.h"
+#include "colors.h"
+#include "effects.h"
 #include "ESP8266WiFi.h"
 #include "events.h"
-#include "effects.h"
+#include "messages.h"
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
@@ -18,8 +20,13 @@ const int MAX_NOF_CLIENTS = 3;
 
 //Wifi related variables:
 WiFiServer wifiServer(WIFI_PORT);
-WiFiClient *clients[MAX_NOF_CLIENTS] = { NULL };
-String input_msgs[MAX_NOF_CLIENTS +1];     //Messages from myself are stored also (old)
+WiFiClient *clients[nofColors] = { NULL };
+//String input_msgs[MAX_NOF_CLIENTS +1];     //Messages from myself are stored also (old)
+
+//Arrays to buffer events to be send/received
+//There is slot for every defined color
+Event receivedEvents[nofColors] = { UNKNOWN };
+Event outgoingEvents[nofColors] = { UNKNOWN };
 
 //Blinking related parameters
 const int blinkDelay_ms = 500;
@@ -43,11 +50,11 @@ int blink_state = -1;
 long lastBlinkTime = 0;
 
 //Game logic related variables:
-int led_states[MAX_NOF_CLIENTS +1];
+//int led_states[MAX_NOF_CLIENTS +1];
 //int GREEN = -1;
 
 
-//--------------------Event handling--------------------
+//--------------------Event sending/receiving--------------------
 
 //Set new event to be sent later to the <color>
 void setEvent(Color color, Event event)
@@ -76,8 +83,22 @@ int sendEvent(const Color color, const Event event)
   }
   else if(clients[color] != NULL && clients[color]->connected())
   {
-    sendEventCommon(*clients[color], color, event);
-    //Serial.println("Event sent.");
+    //Construct a message
+    msg::msg["color"] = color;
+    msg::msg["event"] = static_cast<int>(event.type);
+    msg::msg["data"] = static_cast<int>(event.data);
+
+    //Serialize the message and send it
+    serializeJson(msg::msg, *clients[color]);
+
+    Serial.println("Event sent:");
+    Serial.print("Color: ");
+    Serial.println(static_cast<int>(color));
+    Serial.print("Event type: ");
+    Serial.println(static_cast<int>(event.type));
+    Serial.print("Event data: ");
+    Serial.println(static_cast<int>(event.data));
+    Serial.println("");
   }
   else
   {
@@ -97,7 +118,11 @@ void sendAllEvents()
   {
     if(clients[color] != NULL && clients[color]->connected())
     {
-      sendEvent(static_cast<Color>(color), outgoingEvents[color]);
+      //Don't spam unknown (empty) events
+      if (outgoingEvents[static_cast<int>(color)].type != UNKNOWN)
+      {
+        sendEvent(static_cast<Color>(color), outgoingEvents[color]);
+      }
     }
   }
 }
@@ -106,9 +131,40 @@ void sendAllEvents()
 //Receive new event (if available) from the <color> client
 Event receiveEvent(Color color)
 {
-  if (clients[color] != NULL && clients[color]->available())
+  Event e;
+  e.type = UNKNOWN;
+  e.data = 0;
+
+  if(color == MASTER)
   {
-    return receiveEventCommon(*clients[static_cast<int>(color)]);
+    e = receivedEvents[static_cast<int>(color)];
+  }
+  else if (clients[static_cast<int>(color)] != NULL && 
+      clients[static_cast<int>(color)]->available())
+  {
+    msg::err = deserializeJson(msg::msg, *clients[static_cast<int>(color)]);
+    if (msg::err)
+    {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(msg::err.f_str());
+    }
+    else
+    {
+      //Construct an event from the message:
+      e.type = msg::msg["event"];
+      e.data = msg::msg["data"];
+
+      Serial.println("Received event:");
+      Serial.print("Color: ");
+      Serial.println(static_cast<int>(color));
+      Serial.print("Event: ");
+      Serial.println(static_cast<int>(e.type));
+      Serial.print("Data: ");
+      Serial.println(static_cast<int>(e.data));
+      Serial.println("");
+    }
+
+    return e;
   }
 }
 
@@ -117,10 +173,71 @@ void receiveAllEvents()
 {
   for(size_t color = 0; color < nofColors; color++)
   {
-    receivedEvents[color] = receiveEvent(static_cast<Color>(color));
+    //Don't store unknown events
+    Event e = receiveEvent(static_cast<Color>(color));
+    if (e.type != UNKNOWN)
+    {
+      receivedEvents[color] = e;
+    }
   }
 }
 
+//Clear the outgoing buffer
+void clearOutgoingEvents()
+{
+  for(size_t color = 0; color < nofColors; color++)
+  {
+    Event *e = &outgoingEvents[static_cast<Color>(color)];
+    e->type = UNKNOWN;
+    e->data = 0;
+  }
+}
+
+//Clear the receiving buffer
+void clearReceivedEvents()
+{
+  for(size_t color = 0; color < nofColors; color++)
+  {
+    Event *e = &receivedEvents[static_cast<Color>(color)];
+    e->type = UNKNOWN;
+    e->data = 0;
+  }
+}
+
+//--------------------Event handling--------------------
+
+void handleEvents(const Event e)
+{
+  switch (e.type)
+  {
+    case UNKNOWN:
+      break;
+    case LED:
+      break;
+    case LED_ON:
+      digitalWrite(LED_PIN, HIGH);
+      break;
+    case LED_OFF:
+      digitalWrite(LED_PIN, LOW);
+      break;
+    case BLINK:
+      break;
+    case BLINK_ON:
+      break;
+    case BLINK_OFF:
+      break;
+    case BTN_SHORT:
+      outgoingEvents[BTN_COLOR] = { LED_ON, 0 };
+      Serial.println("BTN SHORT");
+      break;
+    case BTN_LONG:
+      outgoingEvents[BTN_COLOR] = { LED_OFF, 0 };
+      Serial.println("BTN LONG");
+      break;
+    case COLOR:
+      break;
+  }
+}
 
 //--------------------Blinking--------------------
 
@@ -184,20 +301,23 @@ ISR_PREFIX void handleInterrupt()
 //--------------------Buttons--------------------
 
 //Handles button press
-void handleButtonPress()
+void handleButtonPress(bool debug = false)
 {
+  Event btnEvent;
+  btnEvent.type = UNKNOWN;
+  
   if (btn_released_counter > 0)
   {
     if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_MIN_ms &&
         btn_released_time_ms - btn_pressed_time_ms < btn_long_press_threshold_MAX_ms)
     {
-      input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_long;
-      Serial.println("Long btn press");
+      btnEvent.type = BTN_LONG;
+      if (debug) Serial.println("Long btn press");
     }
     else if (btn_released_time_ms - btn_pressed_time_ms <= btn_long_press_threshold_MIN_ms)
     {
-      input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_short;
-      Serial.println("Short btn press");
+      btnEvent.type = BTN_SHORT;
+      if (debug) Serial.println("Short btn press");
     }
     btn_released_counter = 0;
     btn_pressed_counter = 0;
@@ -206,54 +326,79 @@ void handleButtonPress()
   {
     if (millis() - btn_pressed_time_ms > btn_long_press_threshold_MAX_ms)
     {
-      input_msgs[MAX_NOF_CLIENTS] = msg_btn_pressed_short;
-      Serial.println("Short btn press without release event");
+      btnEvent.type = BTN_SHORT;
+      if (debug) Serial.println("Short btn press without release event");
       btn_pressed_counter = 0;
     }
-    
   }
+
+  if (btnEvent.type != UNKNOWN) sendEvent(BTN_COLOR, btnEvent);
 }
 
-
-
-void handleMessage(const String msg)
-{
-  if (msg == msg_led_on) digitalWrite(LED_PIN, HIGH);
-  if (msg == msg_led_off) digitalWrite(LED_PIN, LOW);
-}
-
-
-//--------------------Connections--------------------
+//--------------------Client connections--------------------
 
 //Check new clients 
 //If new clients are available add them to the client list
 int checkNewClients()
 {
   WiFiClient newClient = wifiServer.available();
+  
+  //New client found
   if (newClient)
   {
-    //New client found
-    //Add it to the list if there is space left
-    for (size_t i = 0; i < MAX_NOF_CLIENTS; i++)
+    
+    //Ask its color:
+    //Construct a message
+    msg::msg["color"] = MASTER;
+    msg::msg["event"] = static_cast<int>(COLOR);
+    msg::msg["data"] = 0;
+
+    //Serialize the message and send it
+    serializeJson(msg::msg, newClient);
+
+    //Receive answer
+    Event e;
+    e.type = UNKNOWN;
+    while (newClient.connected() && e.type != COLOR)
     {
-      if (clients[i] == NULL)
+      if (newClient.available())
       {
-        clients[i] = new WiFiClient(newClient);
-        Serial.println("New client added successfully");
-        return 0;
+        msg::err = deserializeJson(msg::msg, newClient);
+        if (msg::err)
+        {
+          Serial.print(F("deserializeJson() failed: "));
+          Serial.println(msg::err.f_str());
+        }
+        else
+        {
+          //Construct an event from the message:
+          e.type = msg::msg["event"];
+          e.data = msg::msg["data"];
+        }
       }
     }
-    Serial.println("New client available, but no space left on the client list.");
-    return -1;
+
+    //Add new client to the list
+    if (static_cast<int>(e.data) < nofColors)
+    {
+      clients[static_cast<int>(e.data)] = new WiFiClient(newClient);
+      Serial.println("New client added successfully");
+      return 0;
+    }
+
+    Serial.print("Color: \(");
+    Serial.print(static_cast<int>(e.data));
+    Serial.println("\) is not a valid color value.");
+    Serial.println("Client rejected.");
+    return 1;
   }
-  return 0;
 }
 
 //Check if some clients have disconnected
 //Remove them from the list
 void removeDisconnectedClients()
 {
-  for (size_t i = 0; i < MAX_NOF_CLIENTS; i++)
+  for (size_t i = 0; i < nofColors; i++)
   {
     if (clients[i] != NULL && !clients[i]->connected())
     {
@@ -267,124 +412,10 @@ void removeDisconnectedClients()
   }
 }
 
-//Check whether clients have new messages
-//If new messages are available add messages to the list
-int checkNewMessages()
-{
-  for (size_t i = 0; i < MAX_NOF_CLIENTS; i++)
-  {
-    //Check if client exists and has any messages
-    if (clients[i] != NULL && clients[i]->available())
-    {
-      //Serial.println("New received data as hex:");
-      //Serial.println("---");
-      while(clients[i]->available())
-      {
-        char c = clients[i]->read();
-        //Serial.println(c, HEX);
-        if (!(c == '\n' || c=='\r')) input_msgs[i] += String(c);
-      }
-      Serial.println("---");
-    }
-  }
-  
-  return 0;
-}
-
-//Get new message from memory, optionally clear the message after reading
-String getNewMessage(int index, bool clear = false)
-{
-  String msg = input_msgs[index];
-  if (clear) input_msgs[index] = "";
-  return msg;
-}
-
-//Clear all new messages from memory
-void clearNewMessages()
-{
-  for (size_t i = 0; i < MAX_NOF_CLIENTS +1; i++)
-  {
-    input_msgs[i] = "";
-  }
-}
-
-
-//Send message to the client
-int sendMessage(const String newMessage, size_t atIndex)
-{
-  if(atIndex == MAX_NOF_CLIENTS)
-  {
-    //This is the master button itself
-    handleMessage(newMessage);
-    return 0;
-  }
-  else if(clients[atIndex] != NULL && clients[atIndex]->connected())
-  {
-    clients[atIndex]->println(newMessage);
-    Serial.println("Message sent");
-  }
-  else
-  {
-    Serial.print("Client at index ");
-    Serial.print(atIndex);
-    Serial.println(" is not connected!");
-    return -1;
-  }
-
-  return 0;
-}
-
 //This is only for testing purposes
 void testLogic()
 {
   
-  //Read messages
-  for (size_t i = 0; i < MAX_NOF_CLIENTS +1 ; i++)
-  {
-
-    if (clients[i] != NULL && GREEN == -1)
-    {
-      sendMessage(msg_ask_color, i);
-    }
-    
-    //Handle button press
-    if (getNewMessage(i) == msg_btn_pressed_short)
-    {
-      /*
-      if (asia = true)
-      {
-        tee tämä
-      }
-      else
-      {
-        tee toisin
-      }
-
-      (asia == true) ? tee tämä : tee toisin
-      */
-      
-      //Send message to change led state
-      (led_states[i] == HIGH) ? led_states[i] = LOW : led_states[i] = HIGH;
-      (led_states[i] == HIGH) ? sendMessage(msg_led_on, i) : sendMessage(msg_led_off, i);
-    }
-    else if (getNewMessage(i) == msg_btn_pressed_long)
-    {
-      //Serial.println("long press");
-    }
-    else if (getNewMessage(i) == msg_color_green)
-    {
-      //GREEN = i;
-      Serial.print("Vihree: ");
-      Serial.println(i);
-    }
-    else
-    {
-      //Serial.println(getNewMessage(i));
-    }
-  }
-
-  //clear messages after handling
-  clearNewMessages();
 }
 
 void setup() {
@@ -418,7 +449,7 @@ void setup() {
   Serial.println("");
 
   //5 blinks indicates successfull wifi connection
-  blink(5);
+  //blink(5);
 
   //Start the server
   wifiServer.begin();
@@ -435,21 +466,19 @@ void loop() {
   //Check if new clients are available and store them
   if (checkNewClients() != 0) Serial.println("Error while adding client");
 
+  receiveAllEvents();
+
   //Handle buttons
   handleButtonPress();
 
-  //clearReceivedEvents();
-  //receiveAllEvents();
-  
-  //Check whether clients have new messages
-  checkNewMessages();
+  //Handle received events
+  handleEvents(receivedEvents[static_cast<int>(BTN_COLOR)]);
 
   //Handle gameplay here
   //gameLogic();
 
-  testLogic();
-
-  //sendAllEvents();
+  //clearReceivedEvents();
+  sendAllEvents();
   //clearOutgoingEvents();
   
   delay(10);

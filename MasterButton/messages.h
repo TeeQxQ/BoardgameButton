@@ -16,7 +16,7 @@
 namespace msg
 {
 
-const int msgCapacity = 48;
+const int msgCapacity = 96;
 StaticJsonDocument<msgCapacity> msg;
 DeserializationError err;
 
