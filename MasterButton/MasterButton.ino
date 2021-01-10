@@ -13,6 +13,7 @@
 const int LED_PIN = 0;
 const int BTN_PIN = 14;
 const Color BTN_COLOR = RED;
+bool ledState = LOW;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
@@ -129,6 +130,10 @@ void sendAllEvents()
 {
   for (size_t color = 0; color < nofColors; color++)
   {
+    if(color == BTN_COLOR)
+    {
+      sendEvent(static_cast<Color>(color), outgoingEvents[color]);
+    }
     if(clients[color] != NULL && clients[color]->connected())
     {
       //Don't spam unknown (empty) events
@@ -240,12 +245,13 @@ void handleEvents(const Event e)
     case BLINK_OFF:
       break;
     case BTN_SHORT:
-      outgoingEvents[BTN_COLOR] = { LED_ON, 0 };
+      ledState = !ledState;
+      (ledState) ? outgoingEvents[BTN_COLOR].type = LED_ON : outgoingEvents[BTN_COLOR].type = LED_OFF;
       Serial.println("BTN SHORT");
-      sendToDrive();
+      //sendToDrive();
       //for(int i = 0; i < nofColors; i++) Serial.println(players[i].isPlaying);
       //Serial.println("Driveen meni");
-      Serial.println(nofPlayers);
+      //Serial.println(nofPlayers);
       break;
     case BTN_LONG:
       outgoingEvents[BTN_COLOR] = { LED_OFF, 0 };
@@ -350,7 +356,12 @@ void handleButtonPress(bool debug = false)
     }
   }
 
-  if (btnEvent.type != UNKNOWN) sendEvent(BTN_COLOR, btnEvent);
+  if (btnEvent.type != UNKNOWN)
+  {
+    sendEvent(BTN_COLOR, btnEvent);
+    if (debug) Serial.println(btnEvent.type);
+  }
+
 }
 
 //--------------------Client connections--------------------
@@ -546,7 +557,6 @@ void loop() {
 
   //Handle buttons
   handleButtonPress();
-
   
   //Handle received events
   handleEvents(receivedEvents[static_cast<int>(BTN_COLOR)]);
