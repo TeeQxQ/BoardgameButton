@@ -62,6 +62,7 @@ volatile unsigned long lastDebounceTime_ms = 0;
 
 //For testing purposes
 bool ledStates[nofColors] = { false };
+int ledLevel = 0;
 
 //--------------------Event sending/receiving--------------------
 
@@ -479,11 +480,18 @@ void testLogic()
 {
   for (size_t color = 0; color < nofColors; color++)
   {
-    if (getEvent(static_cast<Color>(color)).type == BTN_SHORT)
+    if(color != BTN_COLOR)
     {
-      ledStates[color] = !ledStates[color];
-      (ledStates[color]) ? setEvent(static_cast<Color>(color), LED_ON) : setEvent(static_cast<Color>(color), LED_OFF);
+      if (getEvent(static_cast<Color>(color)).type == BTN_SHORT)
+      {
+        ledStates[color] = !ledStates[color];
+        (ledStates[color]) ? setEvent(static_cast<Color>(color), LED_ON) : setEvent(static_cast<Color>(color), LED_OFF);
+        //setEvent(static_cast<Color>(color), LED, ledLevel);
+        //ledLevel += 10;
+        //if (ledLevel > 100) ledLevel = 0;
+      }
     }
+    
   }
 }
 

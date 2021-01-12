@@ -14,6 +14,7 @@ bool ledState = LOW;
 bool blinkEnabled = false;
 const int blinkDelay_ms = 500;
 long lastBlinkTime_ms = 0;
+int ledBrightness = 0;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
@@ -140,7 +141,10 @@ void handleEvent(const Event e, bool debug = false)
     case UNKNOWN:
       break;
     case LED:
-      digitalWrite(LED_PIN, HIGH);
+      ledBrightness = static_cast<int>(e.data);
+      if (ledBrightness > 100) ledBrightness = 100;
+      if (ledBrightness < 0) ledBrightness = 0;
+      analogWrite(LED_PIN, map(ledBrightness, 0, 100, 0, 1023));
       break;
     case LED_ON:
       digitalWrite(LED_PIN, HIGH);
