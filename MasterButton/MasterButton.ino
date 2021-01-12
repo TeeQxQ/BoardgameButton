@@ -60,6 +60,9 @@ const unsigned long btn_long_press_threshold_MAX_ms = 2000;
 const unsigned long debounceDelay_ms = 120;
 volatile unsigned long lastDebounceTime_ms = 0;
 
+//For testing purposes
+bool ledStates[nofColors] = { false };
+
 //--------------------Event sending/receiving--------------------
 
 //Set new event to be sent later to the <color>
@@ -474,7 +477,14 @@ void sendToDrive (){
 //This is only for testing purposes
 void testLogic()
 {
-  
+  for (size_t color = 0; color < nofColors; color++)
+  {
+    if (getEvent(static_cast<Color>(color)).type == BTN_SHORT)
+    {
+      ledStates[color] = !ledStates[color];
+      (ledStates[color]) ? setEvent(static_cast<Color>(color), LED_ON) : setEvent(static_cast<Color>(color), LED_OFF);
+    }
+  }
 }
 
 void setup() {
@@ -505,22 +515,21 @@ void setup() {
   }
   Serial.print("\nWifi connected! My ip: ");
   Serial.println(WiFi.localIP());
-  Serial.println("");
 
   //5 blinks indicates successfull wifi connection
   //blink(5);
 
   //Start the server
   wifiServer.begin();
-  Serial.println("Server started");
+  Serial.println("Wifi server started");
 
   //Connect to google drive
-  Serial.print("Connecting to ");
-  Serial.println(driveHost);
+  //Serial.print("Connecting to ");
+  //Serial.println(driveHost);
 
   driveClient.setInsecure();
   while (!driveClient.connect(driveHost, drivePort)) {
-    Serial.println("connection failed");
+    Serial.println("Drive connection failed...");
   }
   Serial.println("Connected to Drive");
 
@@ -554,6 +563,7 @@ void loop() {
 
   //Handle gameplay here
   //gameLogic();
+  testLogic();
 
   clearReceivedEvents();
   sendAllEvents();

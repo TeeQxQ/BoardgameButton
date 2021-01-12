@@ -1,14 +1,19 @@
-#include "ESP8266WiFi.h"
-#include "messages.h"
 #include "colors.h"
+#include "ESP8266WiFi.h"
 #include "events.h"
+#include "messages.h"
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
 //Hardware parameters:
 const int LED_PIN = 0;
 const int BTN_PIN = 14;
-const Color BTN_COLOR = RED;
+const Color BTN_COLOR = GREEN;
+
+bool ledState = LOW;
+bool blinkEnabled = false;
+const int blinkDelay_ms = 500;
+long lastBlinkTime_ms = 0;
 
 //Wifi parameters:
 const char* ssid = "Kalat_ja_Rapu_2G";
@@ -19,26 +24,152 @@ WiFiClient wifiClient;
 const char* clientAddress = "192.168.1.115";
 const int clientPort = 80;
 
-//Blinking related parameters
-const int blinkDelay_ms = 500;
-bool blink_enabled = false;
-
 //Button related parameters
-const long debounceDelay_ms = 500;
-
-//Global variables:
-volatile byte interruptCounter = 0;
+volatile byte btn_pressed_counter = 0;
+volatile byte btn_released_counter = 0;
 int btn_state = HIGH;
-int blink_state = -1;
-long lastDebounceTime = 0;
-long lastBlinkTime = 0;
+volatile unsigned long btn_pressed_time_ms = 0;
+volatile unsigned long btn_released_time_ms = 0;
+const unsigned long btn_long_press_threshold_MIN_ms = 1000;
+const unsigned long btn_long_press_threshold_MAX_ms = 2000;
+const unsigned long debounceDelay_ms = 120;
+volatile unsigned long lastDebounceTime_ms = 0;
 
 //Communication related:
-String messageToSent = "";
-String messageToRead = "";
+//Buffer events to be send/received
+Event receivedEvent;;
+Event outgoingEvent;
 
-//Game related:
-const String myColor = msg_color_green; //green
+//--------------------Event sending/receiving--------------------
+
+//Set new event to be sent later
+void setEvent(EventType type, int data = 0)
+{
+  outgoingEvent.type = type;
+  outgoingEvent.data = data;
+}
+
+//Get the latest available event
+Event getEvent()
+{
+  return receivedEvent;
+}
+
+//Sends a single event to a master
+void sendEvent(bool debug = false)
+{
+  //Don't send unknown events
+  if (outgoingEvent.type == UNKNOWN) return;
+
+  if(wifiClient.connected())
+  {
+    //Construct a message
+    msg::msg["color"] = BTN_COLOR;
+    msg::msg["event"] = static_cast<int>(outgoingEvent.type);
+    msg::msg["data"] = static_cast<int>(outgoingEvent.data);
+
+    //Serialize the message and send it
+    serializeJson(msg::msg, wifiClient);
+
+    if (debug)
+    {
+      Serial.println("Event sent:");
+      Serial.print("Event type: ");
+      Serial.println(static_cast<int>(outgoingEvent.type));
+      Serial.print("Event data: ");
+      Serial.println(static_cast<int>(outgoingEvent.data));
+      Serial.println("");
+    }
+  }
+  else
+  {
+    Serial.println("Master button was lost");
+  }
+}
+
+//Receive new event (if available) from the master
+void receiveEvent(bool debug = false)
+{
+  if (wifiClient && wifiClient.available())
+  {
+    msg::err = deserializeJson(msg::msg, wifiClient);
+    if (msg::err)
+    {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(msg::err.f_str());
+    }
+    else
+    {
+      //Construct an event from the message:
+      receivedEvent.type = msg::msg["event"];
+      receivedEvent.data = msg::msg["data"];
+
+      if (debug)
+      {
+        Serial.println("Received event:");
+        Serial.print("Event: ");
+        Serial.println(static_cast<int>(receivedEvent.type));
+        Serial.print("Data: ");
+        Serial.println(static_cast<int>(receivedEvent.data));
+        Serial.println("");
+      }
+    }
+  }
+}
+
+//Clear the outgoing buffer
+void clearOutgoingEvent()
+{
+  outgoingEvent.type = UNKNOWN;
+  outgoingEvent.data = 0;
+}
+
+//Clear the receiving buffer
+void clearReceivedEvent()
+{
+  receivedEvent.type = UNKNOWN;
+  receivedEvent.data = 0;
+}
+
+//--------------------Event handling--------------------
+
+void handleEvent(const Event e, bool debug = false)
+{
+  switch (e.type)
+  {
+    case UNKNOWN:
+      break;
+    case LED:
+      digitalWrite(LED_PIN, HIGH);
+      break;
+    case LED_ON:
+      digitalWrite(LED_PIN, HIGH);
+      break;
+    case LED_OFF:
+      digitalWrite(LED_PIN, LOW);
+      break;
+    case BLINK:
+      blinkEnabled = true;
+      break;
+    case BLINK_ON:
+      blinkEnabled = true;
+      break;
+    case BLINK_OFF:
+      blinkEnabled = false;
+      digitalWrite(LED_PIN, LOW);
+      break;
+    case BTN_SHORT:
+      break;
+    case BTN_LONG:
+      break;
+    case COLOR:
+      setEvent(COLOR, BTN_COLOR);
+      if (debug) Serial.println("Color asked");
+      break;
+  }
+}
+
+//--------------------Blinking--------------------
 
 //Blink the led <times> times
 void blink(int times)
@@ -55,44 +186,84 @@ void blink(int times)
 //Handles how blinking works on this device
 void handleBlinking()
 {
-  if(blink_enabled)
+  if(blinkEnabled)
   {
-    if(millis() - lastBlinkTime > blinkDelay_ms)
+    if(millis() - lastBlinkTime_ms > blinkDelay_ms)
     {
-      blink_state = -blink_state;
-      if(blink_state > 0)
-      {
-        digitalWrite(LED_PIN, HIGH);
-      }
-      else
-      {
-        digitalWrite(LED_PIN, LOW);
-      }
-      lastBlinkTime = millis();
+      ledState = !ledState;
+      ledState ? digitalWrite(LED_PIN, HIGH) : digitalWrite(LED_PIN, LOW);
+      lastBlinkTime_ms = millis();
     }
   }
 }
+
+//--------------------Interrupts--------------------
 
 //Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
-  interruptCounter++;
+  unsigned long currentTime_ms = millis();
+  
+  if (currentTime_ms - lastDebounceTime_ms > debounceDelay_ms)
+  {
+    if (digitalRead(BTN_PIN) == HIGH)
+    {
+      btn_released_counter++;
+      btn_released_time_ms = currentTime_ms;
+    }
+    else
+    {
+      btn_pressed_counter++;
+      btn_pressed_time_ms = currentTime_ms;
+    }
+    lastDebounceTime_ms = currentTime_ms;
+  }
+  
 }
 
+//--------------------Buttons--------------------
+
 //Handles button press
-void handleButtonPress()
+void handleButtonPress(bool debug = false)
 {
-  if(interruptCounter > 0)
+  Event btnEvent;
+  btnEvent.type = UNKNOWN;
+  
+  if (btn_released_counter > 0)
   {
-    interruptCounter = 0;
-    if((millis() - lastDebounceTime) > debounceDelay_ms)
+    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_MIN_ms &&
+        btn_released_time_ms - btn_pressed_time_ms < btn_long_press_threshold_MAX_ms)
     {
-      Serial.println("BTN Pressed");
-      messageToSent = msg_btn_pressed_short;
-      lastDebounceTime = millis();
+      btnEvent.type = BTN_LONG;
+      if (debug) Serial.println("Long btn press");
+    }
+    else if (btn_released_time_ms - btn_pressed_time_ms <= btn_long_press_threshold_MIN_ms)
+    {
+      btnEvent.type = BTN_SHORT;
+      if (debug) Serial.println("Short btn press");
+    }
+    btn_released_counter = 0;
+    btn_pressed_counter = 0;
+  }
+  else if (btn_pressed_counter > 0)
+  {
+    if (millis() - btn_pressed_time_ms > btn_long_press_threshold_MAX_ms)
+    {
+      btnEvent.type = BTN_SHORT;
+      if (debug) Serial.println("Short btn press without release event");
+      btn_pressed_counter = 0;
     }
   }
+
+  if (btnEvent.type != UNKNOWN)
+  {
+    setEvent(btnEvent.type);
+    if (debug) Serial.println(btnEvent.type);
+  }
+
 }
+
+//--------------------wifiClient connections--------------------
 
 //Wait until main button is available and then connect
 int connectToMainButton(const int waitTime_ms = 1000)
@@ -110,77 +281,7 @@ int connectToMainButton(const int waitTime_ms = 1000)
   return 0;
 }
 
-//Send message to the main button if connected
-int sendMessage()
-{
-  if (messageToSent != "")
-  {
-    if (wifiClient)
-    {
-      wifiClient.println(messageToSent);
-    }
-    else
-    {
-      Serial.println("Master button was lost");
-      return 1;
-    }
-    messageToSent = "";
-  }
-  return 0;
-}
-
-//Read new messages from the main button if connected
-int checkNewMessages()
-{
-  if (wifiClient)
-  {
-    while (wifiClient.available())
-    {
-      char c = wifiClient.read();
-      if (!(c == '\n' || c == '\r')) messageToRead += String(c);
-    }
-  }
-  else
-  {
-    return 1;
-  }
-  return 0;
-}
-
-//Handles messages received from the main button
-int handleNewMessages(bool clear = true)
-{
-  if (messageToRead != "")
-  {
-
-    if (messageToRead == msg_led_on)
-    {
-      Serial.println("led on");
-      digitalWrite(LED_PIN, HIGH);
-    }
-    else if (messageToRead == msg_led_off)
-    {
-      Serial.println("led off");
-      digitalWrite(LED_PIN, LOW);
-    }
-    else if (messageToRead == msg_ask_color)
-    {
-      messageToSent = myColor;
-    }
-    else
-    {
-      Serial.print("Unknown message received: ");
-      Serial.println(messageToRead);
-    }
-    
-    //Clear message:
-    if (clear) messageToRead = "";
-  }
-
-  delay(10);
-  
-  return 0;
-}
+//--------------------Setup--------------------
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
@@ -188,7 +289,7 @@ void setup() {
 
   digitalWrite(LED_PIN, LOW);  //turn off by LOW
 
-  attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, CHANGE);
 
   Serial.begin(9600);
   delay(1000);
@@ -212,18 +313,18 @@ void setup() {
   Serial.println("");
 
   //5 blinks indicates successfull wifi connection
-  blink(5);
+  //blink(5);
 }
 
 //--------------------Main program--------------------
 
 void loop() {
-  interruptCounter = 0;
 
   //Connect to the main button
   while (connectToMainButton() != 0)
   {
-    Serial.println("Trying to connect to the main button..."); 
+    Serial.println("Trying to connect to the main button...");
+    delay(500);
   }
 
   if (wifiClient)
@@ -232,7 +333,7 @@ void loop() {
     while(wifiClient.connected())
     {
       delay(10);
-
+      
       //Handle buttons
       handleButtonPress();
 
@@ -240,13 +341,15 @@ void loop() {
       handleBlinking();
       
       //Read if there are any new messages from the main button
-      if (checkNewMessages() != 0) Serial.println("Error while reading new messages.");
+      receiveEvent();
 
       //Handle new messages
-      if (handleNewMessages() != 0) Serial.println("Error while handling new messages");
+      handleEvent(getEvent(), true);
+      clearReceivedEvent();
 
       //Send new messages
-      if (sendMessage() != 0) Serial.println("Error while sending message.");
+      sendEvent(true);
+      clearOutgoingEvent();
 
     }
   }
