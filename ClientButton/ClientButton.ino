@@ -8,7 +8,7 @@
 //Hardware parameters:
 const int LED_PIN = 0;
 const int BTN_PIN = 14;
-const Color BTN_COLOR = GREEN;
+const Color BTN_COLOR = YELLOW;
 
 bool ledState = LOW;
 bool blinkEnabled = false;
@@ -22,7 +22,7 @@ const char* password = "rutaQlli";
 
 //Wifi related variables:
 WiFiClient wifiClient;
-const char* clientAddress = "192.168.1.115";
+const char* clientAddress = "192.168.1.111";
 const int clientPort = 80;
 
 //Button related parameters

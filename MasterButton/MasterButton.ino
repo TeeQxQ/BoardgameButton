@@ -10,8 +10,8 @@
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
 //Hardware parameters:
-const int LED_PIN = 0;
-const int BTN_PIN = 14;
+const int LED_PIN = 15;
+const int BTN_PIN = 13;
 const Color BTN_COLOR = RED;
 
 bool ledState = LOW;
@@ -50,9 +50,9 @@ volatile byte btn_released_counter = 0;
 int btn_state = HIGH;
 volatile unsigned long btn_pressed_time_ms = 0;
 volatile unsigned long btn_released_time_ms = 0;
-const unsigned long btn_long_press_threshold_MIN_ms = 800;
-const unsigned long btn_long_press_threshold_MAX_ms = 2500;
-const unsigned long debounceDelay_ms = 120;
+const unsigned long btn_long_press_threshold_ms = 750;
+//const unsigned long btn_long_press_threshold_MAX_ms = 2000;
+const unsigned long debounceDelay_ms = 50;
 volatile unsigned long lastDebounceTime_ms = 0;
 
 //For testing purposes
@@ -288,23 +288,25 @@ void handleBlinking()
 //Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
+  const int btnState = digitalRead(BTN_PIN);
   unsigned long currentTime_ms = millis();
-  
   if (currentTime_ms - lastDebounceTime_ms > debounceDelay_ms)
   {
-    if (digitalRead(BTN_PIN) == HIGH)
-    {
-      btn_released_counter++;
-      btn_released_time_ms = currentTime_ms;
-    }
-    else
+    if (btnState == HIGH)
     {
       btn_pressed_counter++;
       btn_pressed_time_ms = currentTime_ms;
+      //Serial.print("HIGH: ");
+    }
+    else
+    {
+      btn_released_counter++;
+      btn_released_time_ms = currentTime_ms;
+      //Serial.print("LOW: ");
     }
     lastDebounceTime_ms = currentTime_ms;
+    //Serial.println(currentTime_ms);
   }
-  
 }
 
 //--------------------Buttons--------------------
@@ -314,39 +316,31 @@ void handleButtonPress(bool debug = false)
 {
   Event btnEvent;
   btnEvent.type = UNKNOWN;
-  
+
   if (btn_released_counter > 0)
   {
-    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_MIN_ms &&
-        btn_released_time_ms - btn_pressed_time_ms < btn_long_press_threshold_MAX_ms)
+    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_ms)
     {
       btnEvent.type = BTN_LONG;
       if (debug) Serial.println("Long btn press");
     }
-    else if (btn_released_time_ms - btn_pressed_time_ms <= btn_long_press_threshold_MIN_ms)
+    else
     {
       btnEvent.type = BTN_SHORT;
       if (debug) Serial.println("Short btn press");
     }
+    if (debug) Serial.print("Time: ");
+    if (debug) Serial.println(btn_released_time_ms - btn_pressed_time_ms);
+
     btn_released_counter = 0;
     btn_pressed_counter = 0;
-  }
-  else if (btn_pressed_counter > 0)
-  {
-    if (millis() - btn_pressed_time_ms > btn_long_press_threshold_MAX_ms)
-    {
-      btnEvent.type = BTN_SHORT;
-      if (debug) Serial.println("Short btn press without release event");
-      btn_pressed_counter = 0;
-    }
   }
 
   if (btnEvent.type != UNKNOWN)
   {
     sendEvent(BTN_COLOR, btnEvent);
-    if (debug) Serial.println(btnEvent.type);
+    //if (debug) Serial.println(btnEvent.type);
   }
-
 }
 
 //--------------------Client connections--------------------
@@ -554,7 +548,7 @@ void loop() {
   receiveAllEvents();
 
   //Handle buttons
-  handleButtonPress();
+  handleButtonPress(true);
 
   //Handle blinking
   handleBlinking();
@@ -569,6 +563,6 @@ void loop() {
   clearReceivedEvents();
   sendAllEvents();
   clearOutgoingEvents();
-  
-  delay(10);
+
+  delay(1);
 }
