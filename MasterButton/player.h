@@ -4,6 +4,8 @@ typedef struct Player
   bool isPlaying;
   bool passed;
   bool turnSelected;
+  bool turnDone;
+  String turnLength;
   
 } Player;
 
@@ -19,5 +21,8 @@ void initializePlayers()
     players[static_cast<int>(color)].isPlaying = false;
     players[static_cast<int>(color)].passed = false;
     players[static_cast<int>(color)].turnSelected = false;
+    players[static_cast<int>(color)].turnDone = false;
+    players[static_cast<int>(color)].turnLength = "";
+    
   }
 }
