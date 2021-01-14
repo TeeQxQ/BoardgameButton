@@ -21,8 +21,8 @@ const int blinkDelay_ms = 500;
 long lastBlinkTime_ms = 0;
 
 //Wifi parameters:
-const char* ssid = "Kalat_ja_Rapu_2G";
-const char* password = "rutaQlli";
+const char* ssid = "PikkuPingviini";
+const char* password = "Pinquliini";
 const int WIFI_PORT = 80;
 const int MAX_NOF_CLIENTS = 3;
 
@@ -38,11 +38,6 @@ const String GAS_ID = "AKfycbyyMIrQdgzFpbFaOPDEEMih1gN-afdZAdnqPT-_egqosxMO9NBL"
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nUser-Agent: BuildFailureDetectorESP8266\r\nConnection: keep-alive\r\n\r\n";
 
-String green_time = "";
-String red_time = "";
-String blue_time = "";
-String yellow_time = "";
-String white_time = "";
 
 //Arrays to buffer events to be send/received
 //There is slot for every defined color
@@ -55,8 +50,8 @@ volatile byte btn_released_counter = 0;
 int btn_state = HIGH;
 volatile unsigned long btn_pressed_time_ms = 0;
 volatile unsigned long btn_released_time_ms = 0;
-const unsigned long btn_long_press_threshold_MIN_ms = 1000;
-const unsigned long btn_long_press_threshold_MAX_ms = 2000;
+const unsigned long btn_long_press_threshold_MIN_ms = 800;
+const unsigned long btn_long_press_threshold_MAX_ms = 2500;
 const unsigned long debounceDelay_ms = 120;
 volatile unsigned long lastDebounceTime_ms = 0;
 
@@ -247,15 +242,13 @@ void handleEvents(const Event e)
       digitalWrite(LED_PIN, LOW);
       break;
     case BTN_SHORT:
-      ledState = !ledState;
-      (ledState) ? outgoingEvents[BTN_COLOR].type = LED_ON : outgoingEvents[BTN_COLOR].type = LED_OFF;
-      Serial.println("BTN SHORT");
-      //sendToDrive();
+      //ledState = !ledState;
+      //(ledState) ? outgoingEvents[BTN_COLOR].type = LED_ON : outgoingEvents[BTN_COLOR].type = LED_OFF;
+      //Serial.println("BTN SHORT");
       break;
     case BTN_LONG:
-      (blinkEnabled) ? outgoingEvents[BTN_COLOR].type = BLINK_OFF : outgoingEvents[BTN_COLOR].type = BLINK_ON;
-      //driveClient.stop();
-      Serial.println("BTN LONG");
+      //(blinkEnabled) ? outgoingEvents[BTN_COLOR].type = BLINK_OFF : outgoingEvents[BTN_COLOR].type = BLINK_ON;
+      //Serial.println("BTN LONG");
       break;
     case COLOR:
       break;
@@ -465,11 +458,11 @@ void sendToDrive (){
   }
 
   String colorTimes ="";
-  colorTimes += "green=" + green_time;
-  colorTimes += "&blue=" + blue_time;
-  colorTimes += "&red=" + red_time;
-  colorTimes += "&white=" + white_time;
-  colorTimes += "&yellow=" + yellow_time;
+  colorTimes += "green=" + players[GREEN].turnLength;
+  colorTimes += "&blue=" + players[BLUE].turnLength;
+  colorTimes += "&red=" + players[RED].turnLength;
+  colorTimes += "&white=" + players[WHITE].turnLength;
+  colorTimes += "&yellow=" + players[YELLOW].turnLength;
 
   driveClient.print(String("GET ") + url + colorTimes + httpString);
   Serial.println("Request sent");
@@ -570,8 +563,8 @@ void loop() {
   handleEvents(receivedEvents[static_cast<int>(BTN_COLOR)]);
 
   //Handle gameplay here
-  //gameLogic();
-  testLogic();
+  gameLogic();
+  //testLogic();
 
   clearReceivedEvents();
   sendAllEvents();
