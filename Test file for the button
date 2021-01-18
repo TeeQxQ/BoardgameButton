@@ -1,0 +1,55 @@
+const int LED_PIN = 0;
+const int BTN_PIN = 14;
+
+const int ButtonPin = 14;
+int ButtonState = LOW;
+int lastState = LOW;
+const int SHORT_PRESS_TIME = 1000; //määrittää pannalluksen pituuden, jonka jälkeen tulkitaan passaukseksi
+const int MIN_PRESS_TIME = 10; //tällä yritetään välttää useamman painalluksen rekisteröityminen
+
+unsigned long pressedTime  = 0;
+unsigned long releasedTime = 0;
+unsigned long pressDuration;
+int nofPresses = 0;
+
+void setup() {
+  pinMode(ButtonPin, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+  Serial.begin(9600);
+}
+
+void loop() {
+
+  ButtonState = digitalRead(ButtonPin);
+  
+  if(lastState == LOW && ButtonState == HIGH){        // button is pressed
+    pressedTime = millis();
+ 
+  }else if(lastState == HIGH && ButtonState == LOW) { // button is released
+    releasedTime = millis();
+    pressDuration = releasedTime - pressedTime;
+    
+  } 
+  
+  if(pressDuration < SHORT_PRESS_TIME && pressDuration > MIN_PRESS_TIME){
+    nofPresses++;
+    Serial.print("Short ");
+    Serial.print("nofPresses: ");
+    Serial.println(nofPresses);
+
+    digitalWrite(LED_PIN, HIGH);
+    pressDuration = 0; 
+  }
+
+  if(pressDuration > SHORT_PRESS_TIME){
+    nofPresses++;
+    Serial.print("Long ");
+    Serial.print("nofPresses: ");
+    Serial.println(nofPresses);
+    digitalWrite(LED_PIN, LOW);
+    pressDuration = 0; 
+  } 
+  lastState = ButtonState;
+
+}
