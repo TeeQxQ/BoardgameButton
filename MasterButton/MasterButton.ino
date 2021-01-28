@@ -21,8 +21,8 @@ const int blinkDelay_ms = 500;
 long lastBlinkTime_ms = 0;
 
 //Wifi parameters:
-const char* ssid = "PikkuPingviini";
-const char* password = "Pinquliini";
+const char* ssid = "Kalat_ja_Rapu_2G";
+const char* password = "rutaQlli";
 const int WIFI_PORT = 80;
 const int MAX_NOF_CLIENTS = 3;
 
@@ -557,8 +557,8 @@ void loop() {
   handleEvents(receivedEvents[static_cast<int>(BTN_COLOR)]);
 
   //Handle gameplay here
-  gameLogic();
-  //testLogic();
+  //gameLogic();
+  testLogic();
 
   clearReceivedEvents();
   sendAllEvents();
