@@ -1,7 +1,7 @@
 //This file defines different IDs for different events
 
 enum EventType {
-  UNKNOWN,
+  UNKNOWN = 0,
   LED,
   LED_ON,
   LED_OFF,
