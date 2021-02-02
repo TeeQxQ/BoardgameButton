@@ -9,5 +9,5 @@ Button for various board game purposes to indicate player actions
 * Add effects (more than blinking)
 * Add general implementation for effects
 * Add led indicators for different phases
-* Read game setting (e.g. game logic, turn length indicator...) via Google Drive
+* Read game settings (e.g. game logic, turn length indicator...) via Google Drive
 
