@@ -20,8 +20,9 @@ Color BTN_COLOR = UNDEFINED;
 
 bool ledState = LOW;
 bool blinkEnabled = false;
-//bool blinkState = LOW;
-const int blinkDelay_ms = 500;
+const int defaultBlinkDelay_ms = 500;
+int blinkDelay_ms;
+int blinkCount = 0;
 long lastBlinkTime_ms = 0;
 
 //Wifi parameters:
@@ -273,15 +274,12 @@ void handleEvents(const Event e)
 //--------------------Blinking--------------------
 
 //Blink the led <times> times
-void blink(int times)
+void blink(int times, int delay_ms = defaultBlinkDelay_ms)
 {
-  for(int i = 0; i < times; i++)
-  {
-    delay(blinkDelay_ms);
-    digitalWrite(LED_PIN, HIGH);
-    delay(blinkDelay_ms);
-    digitalWrite(LED_PIN, LOW);
-  }
+  blinkEnabled = true;
+  blinkCount = times;
+  blinkDelay_ms = delay_ms;
+  lastBlinkTime_ms = millis();
 }
 
 //Handles how blinking works on this device
@@ -294,6 +292,16 @@ void handleBlinking()
       ledState = !ledState;
       ledState ? digitalWrite(LED_PIN, HIGH) : digitalWrite(LED_PIN, LOW);
       lastBlinkTime_ms = millis();
+
+      if (ledState)
+      {
+        blinkCount--;
+      }
+      else
+      {
+        if(blinkCount == 0) blinkEnabled = false;
+      }
+
     }
   }
 }
@@ -525,21 +533,16 @@ void setup() {
 
   digitalWrite(LED_PIN, LOW);  //turn off by LOW
 
+  //Serial connection for debugging purposes
+  Serial.begin(9600);
+  delay(1000);
+
   //Determine own color:
   BTN_COLOR = getColor(false);
   Serial.print("Color of the button: ");
   Serial.println(colorToString(BTN_COLOR));
 
   attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, CHANGE);
-
-  //Serial connection for debugging purposes
-  Serial.begin(9600);
-  delay(1000);
-
-  //Connect to wifi network:
-  //WiFi.begin(ssid, password);
-
-  
 
   int tryWifiIndex = 0;
   while(WiFi.status() != WL_CONNECTED)
@@ -560,7 +563,7 @@ void setup() {
 
 
   //5 blinks indicates successfull wifi connection
-  //blink(5);
+  blink(5);
 
   //Start the server
   wifiServer.begin();
