@@ -10,7 +10,7 @@
 
 //Wifi access point (AP) parameters:
 const char* AP_ssid = "BoardGameBox";
-const char* AP_password = "box12345";
+const char* AP_password = "box12345"; //must be >= 8 chars
 const int CHANNEL = 1;
 const bool HIDE_AP = false;
 const int MAX_NOF_CLIENTS = 5;
@@ -206,7 +206,7 @@ void setup()
   createSoftAP();
 
   //Connect to local wifi network
-  connectToWifi();
+  //connectToWifi();
 
   //Start the server
   wifiServer.begin();

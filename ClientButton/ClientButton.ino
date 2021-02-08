@@ -1,7 +1,7 @@
 #include "colors.h"
 #include "ESP8266WiFi.h"
 #include "events.h"
-#include "messages.h"
+#include "messages.h"4
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
 
@@ -30,7 +30,7 @@ const char* ssid = "BoardGameBox";
 const char* password = "box12345";
 
 //Wifi related variables:
-WiFiClient wifiClient;
+static WiFiClient wifiClient;
 const char* clientAddress = "192.168.4.1";
 const int clientPort = 80;
 
@@ -314,12 +314,15 @@ Color getColor(bool debug)
 //--------------------wifiClient connections--------------------
 
 //Wait until main button is available and then connect
-int connectToMainButton(const int waitTime_ms = 1000)
+int connectToMainButton(const int waitTime_ms = 5000)
 {
-  if (!wifiClient.connect(clientAddress, clientPort))
+  if (!wifiClient.connected())
   {
-    delay(waitTime_ms);
-    return -1;
+    if (!wifiClient.connect(clientAddress, clientPort))
+    {
+      delay(waitTime_ms);
+      return -1;
+    }
   }
   Serial.print("Connected to ip: ");
   Serial.print(clientAddress);
@@ -352,6 +355,9 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, CHANGE);
 
+  //Explicitely define this is a station, not access point
+  WiFi.mode(WIFI_STA);
+
   //Connect to wifi network:
   WiFi.begin(ssid, password);
 
@@ -379,11 +385,17 @@ void setup() {
 void loop() {
 
   //Connect to the main button
-  while (connectToMainButton() != 0)
+  if (wifiClient.connect("192.168.4.1", 80))
+  {
+    Serial.println("Connected");
+  }
+
+  delay(1000);
+  /*while (connectToMainButton() != 0)
   {
     Serial.println("Trying to connect to the main button...");
     delay(500);
-  }
+  }*/
 
   if (wifiClient)
   {
@@ -412,10 +424,10 @@ void loop() {
       */
     }
   }
-  
+  /*
   wifiClient.stop();
   Serial.print("Disconnected: ");
   Serial.print(clientAddress);
   Serial.print(" port: ");
-  Serial.println(clientPort);
+  Serial.println(clientPort);*/
 }
