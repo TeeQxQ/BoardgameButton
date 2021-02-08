@@ -18,12 +18,21 @@ Color BTN_COLOR = UNDEFINED;
 const int LED_BRIGHTNESS_MAX = 1023;
 const int LED_BRIGHTNESS_MIN = 0;
 bool ledState = LOW;
+int ledBrightness = 0;
+
+//Blinking effect
 bool blinkEnabled = false;
-const int defaultBlinkDelay_ms = 500;
+const long defaultBlinkDelay_ms = 500;
 int blinkDelay_ms;
 int blinkCount = 0;
 long lastBlinkTime_ms = 0;
-int ledBrightness = 0;
+
+//Breathing effect
+bool breathingEnabled = false;
+const long defaultBreathingDelay_ms = 20;
+int breathingDelay_ms ;
+bool inhale = true;
+long lastBreathingTime_ms = 0;
 
 //Wifi parameters:
 const char* ssid = "BoardGameBox";
@@ -181,7 +190,19 @@ void handleEvent(const Event e, bool debug = false)
   }
 }
 
-//--------------------Blinking--------------------
+//--------------------Effects--------------------
+
+void startBlinking()
+{
+  stopBreathing();
+  blinkEnabled = true;
+}
+
+void stopBlinking()
+{
+  blinkEnabled = false;
+  blinkCount = 0;
+}
 
 //Blink the led <times> times
 void blink(int times, int delay_ms = defaultBlinkDelay_ms)
@@ -197,6 +218,7 @@ void handleBlinking()
 {
   if(blinkEnabled)
   {
+    breathingEnabled = false;
     if(millis() - lastBlinkTime_ms > blinkDelay_ms)
     {
       ledState = !ledState;
@@ -215,6 +237,69 @@ void handleBlinking()
     }
   }
 }
+
+//Starts breathing effect if not already started
+void startBreathing()
+{
+  if (!breathingEnabled)
+  {
+    stopBlinking();
+    breathingEnabled = true;
+    inhale = true;
+    lastBreathingTime_ms = millis();
+    ledBrightness = 0;
+    breathingDelay_ms = defaultBreathingDelay_ms;
+  }
+}
+
+//Stops breathing effect if not already stopped
+void stopBreathing()
+{
+  if (breathingEnabled)
+  {
+    breathingEnabled = false;
+    ledBrightness = 100;
+  }
+}
+
+//Handles how breathing works on this device
+void handleBreathing()
+{
+  if (breathingEnabled)
+  {
+    if (millis() - lastBreathingTime_ms > breathingDelay_ms)
+    {
+      lastBreathingTime_ms = millis();
+      if (inhale)
+      {
+        ledBrightness++;
+        if (ledBrightness > 100)
+        {
+          ledBrightness = 100;
+          inhale = false;
+        }
+      }
+      else
+      {
+        ledBrightness--;
+        if (ledBrightness < 0)
+        {
+          ledBrightness = 0;
+          inhale = true;
+        }
+      }
+      analogWrite(LED_PIN, map(ledBrightness, 0, 100, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
+     }
+  }
+}
+
+/*
+bool breathingEnabled = false;
+const int defaultBreathingDelay_ms = 10;
+int breathingDelay_ms;
+bool inhale = true;
+long lastBreathingTime_ms = 0;
+*/
 
 //--------------------Interrupts--------------------
 
@@ -314,21 +399,22 @@ Color getColor(bool debug)
 //--------------------wifiClient connections--------------------
 
 //Wait until main button is available and then connect
-int connectToMainButton(const int waitTime_ms = 5000)
+int connectToGameServer(const int waitTime_ms = 3000)
 {
   if (!wifiClient.connected())
   {
     if (!wifiClient.connect(clientAddress, clientPort))
     {
-      delay(waitTime_ms);
+      //delay(waitTime_ms);
       return -1;
     }
+    Serial.println("Connected to Game server:");
+    Serial.print("- ip: ");
+    Serial.println(clientAddress);
+    Serial.print("- port: ");
+    Serial.println(clientPort);
+    blink(5, 200);
   }
-  Serial.print("Connected to ip: ");
-  Serial.print(clientAddress);
-  Serial.print(" port: ");
-  Serial.println(clientPort);
-
   return 0;
 }
 
@@ -345,11 +431,12 @@ void setup() {
   digitalWrite(LED_PIN, LOW);  //turn off by LOW
 
   //Serial connection for debugging purposes
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(1000);
 
   //Determine own color:
   BTN_COLOR = getColor(false);
+  Serial.println("");
   Serial.print("Color of the button: ");
   Serial.println(colorToString(BTN_COLOR));
 
@@ -361,73 +448,102 @@ void setup() {
   //Connect to wifi network:
   WiFi.begin(ssid, password);
 
-  Serial.println("Wifi parameters:");
-  Serial.print("ssid: ");
+  Serial.println("Wifi (AP) parameters:");
+  Serial.print("- ssid: ");
   Serial.println(ssid);
-  Serial.print("password: ");
+  Serial.print("- password: ");
   Serial.println(password);
 
+  /*
   while(WiFi.status() != WL_CONNECTED)
   {
     delay(3000);
     Serial.println("Trying to connect wifi...");
   }
-  Serial.print("\nWifi Connected! My ip: ");
-  Serial.println(WiFi.localIP());
-  Serial.println("");
-
-  //5 blinks indicates successfull wifi connection
-  blink(5);
+  Serial.println("Wifi Connected:");
+  Serial.print("- ip: ");
+  Serial.println(WiFi.localIP());*/
 }
 
 //--------------------Main program--------------------
 
 void loop() {
 
-  //Connect to the main button
-  if (wifiClient.connect("192.168.4.1", 80))
-  {
-    Serial.println("Connected");
-  }
+  //Handle button press
+  handleButtonPress();
 
-  delay(1000);
-  /*while (connectToMainButton() != 0)
-  {
-    Serial.println("Trying to connect to the main button...");
-    delay(500);
-  }*/
+  //Handle blinking
+  handleBlinking();
 
-  if (wifiClient)
+  //Handle breathing
+  handleBreathing();
+
+  if (WiFi.status() != WL_CONNECTED)
   {
-    //While connection to the main button is alive:
-    while(wifiClient.connected())
+    //Effect to indicate lost connection
+    startBreathing();
+
+    //Disconnect client (if not already disconnected) if wifi was lost
+    if (wifiClient)
     {
-      delay(10);
-
-      /*
-      //Handle buttons
-      handleButtonPress();
-
-      //Handle blinking
-      handleBlinking();
-      
-      //Read if there are any new messages from the main button
-      receiveEvent();
-
-      //Handle new messages
-      handleEvent(getEvent(), true);
-      clearReceivedEvent();
-
-      //Send new messages
-      sendEvent(true);
-      clearOutgoingEvent();
-      */
+      wifiClient.stop();
+      //Serial.println("Server disconnected");
     }
   }
+  else
+  {
+    stopBreathing();
+
+    //Connect to the box running game server
+    if(connectToGameServer() != 0)
+    {
+      Serial.println("Trying to connect to the game server...");
+    }
+  }
+
   /*
-  wifiClient.stop();
-  Serial.print("Disconnected: ");
-  Serial.print(clientAddress);
-  Serial.print(" port: ");
-  Serial.println(clientPort);*/
+  //Connect to the box running game server
+  if(connectToGameServer() != 0)
+  {
+    Serial.println("Trying to connect to the game server...");
+    delay(500);
+  }
+  else
+  {
+    if (wifiClient)
+    {
+      //While connection to the main button is alive:
+      if(wifiClient.connected())
+      {
+        delay(10);
+  
+        
+        //Handle buttons
+        handleButtonPress();
+  
+        //Handle blinking
+        handleBlinking();
+        
+        //Read if there are any new messages from the main button
+        receiveEvent();
+  
+        //Handle new messages
+        handleEvent(getEvent(), true);
+        clearReceivedEvent();
+  
+        //Send new messages
+        sendEvent(true);
+        clearOutgoingEvent();
+        
+      }
+      else
+      {
+        wifiClient.stop();
+        Serial.print("Disconnected: ");
+        Serial.print(clientAddress);
+        Serial.print(" port: ");
+        Serial.println(clientPort);
+      }
+    }
+  }*/
 }
