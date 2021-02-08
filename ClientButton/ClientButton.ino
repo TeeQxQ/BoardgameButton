@@ -470,7 +470,7 @@ void setup() {
 void loop() {
 
   //Handle button press
-  handleButtonPress();
+  handleButtonPress(true);
 
   //Handle blinking
   handleBlinking();
@@ -497,7 +497,23 @@ void loop() {
     //Connect to the box running game server
     if(connectToGameServer() != 0)
     {
-      Serial.println("Trying to connect to the game server...");
+      //Serial.println("Trying to connect to the game server...");
+    }
+    else
+    {
+      if (wifiClient && wifiClient.connected())
+      {
+        //Read if there are any new messages from the main button
+        receiveEvent();
+  
+        //Handle new messages
+        handleEvent(getEvent(), true);
+        clearReceivedEvent();
+  
+        //Send new messages
+        sendEvent(true);
+        clearOutgoingEvent();
+      }
     }
   }
 
