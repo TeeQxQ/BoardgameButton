@@ -177,7 +177,7 @@ void playPhase(){
         saveTurnLength(i);
         endTurn (i);
 
-        if(passOverEnabled == false && changePlayerOrderEnabled == false)stopTime();
+        if(changePlayerOrderEnabled == false)stopTime();
         else passHandler(i);
       }  
       break;
