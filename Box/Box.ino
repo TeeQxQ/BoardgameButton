@@ -61,7 +61,7 @@ Event getEvent(Color color)
 }
 
 //Sends a single event to a single client
-int sendEvent(const Color color, const Event event)
+int sendEvent(const Color color, Event event)
 {
   //Sends message to the master button itself
   /*if(color == BTN_COLOR)
@@ -85,15 +85,15 @@ int sendEvent(const Color color, const Event event)
 
     //Serialize the message and send it
     serializeJson(msg::msg, *clients[color]);
-
+    /*
     Serial.println("Event sent:");
     Serial.print("Color: ");
-    Serial.println(static_cast<int>(color));
+    Serial.println(colorToString(color));
     Serial.print("Event type: ");
-    Serial.println(static_cast<int>(event.type));
+    Serial.println(eventToString(event));
     Serial.print("Event data: ");
     Serial.println(static_cast<int>(event.data));
-    Serial.println("");
+    Serial.println("");*/
   }
   else
   {
@@ -158,9 +158,9 @@ Event receiveEvent(Color color)
 
       Serial.println("Received event:");
       Serial.print("Color: ");
-      Serial.println(static_cast<int>(color));
+      Serial.println(colorToString(color));
       Serial.print("Event: ");
-      Serial.println(static_cast<int>(e.type));
+      Serial.println(eventToString(e));
       Serial.print("Data: ");
       Serial.println(static_cast<int>(e.data));
       Serial.println("");
@@ -269,7 +269,7 @@ int checkNewClients()
       {
         //Add new player to the game
         players[indexOfColor].isPlaying = true;
-        nofPlayers++;
+        //nofPlayers++; 
 
         Serial.print("New player ");
         Serial.print(colorToString(static_cast<Color>(e.data)));
@@ -424,7 +424,7 @@ void loop()
   //Check if new clients are available and store them
   checkNewClients();
 
-  gameLogic();
+  //gameLogic();
 
   clearReceivedEvents();
   sendAllEvents();
