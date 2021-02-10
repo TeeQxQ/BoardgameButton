@@ -412,7 +412,8 @@ void setup()
   //Initialize player list
   initializePlayers();
 
-  sendToDrive();
+  //Only for testing purposes
+  //sendToDrive();
 }
  
 void loop()
@@ -422,6 +423,8 @@ void loop()
 
   //Check if new clients are available and store them
   checkNewClients();
+
+  gameLogic();
 
   clearReceivedEvents();
   sendAllEvents();
