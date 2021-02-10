@@ -21,12 +21,15 @@ int nofOrderSelected = 0;
 int nofPasses = 0;
 int nofTurnDone = 0;
 
+int count = 0;
+
 void gameLogic(){
 
   if(predictablePlayerOrderEnabled == true){
     if (playerOrderSelected == false) selectPlayerOrder();
-    if (waitStart == true)waitStartOfPlayPhase();
     if (runPlayPhase == true) playPhase();
+    if (waitStart == true)waitStartOfPlayPhase();
+    
   }
   else{
     if (playerOrderSelected == false) selectStaticOrder();
@@ -100,9 +103,13 @@ void waitStartOfPlayPhase(){
   if (getEvent(players[player_order[0]].color).type == BTN_SHORT){
     Serial.println("Start");
     setEvent(static_cast<Color>(player_order[0]),  BLINK_OFF);
+    Serial.println(player_order[0]);
     turnBegings = true;
     waitStart =false;
     runPlayPhase = true;
+    nofPasses = 0;
+    
+    count = 0 ;
   } 
 }
   
@@ -150,8 +157,17 @@ void playPhase(){
   for (size_t i = 0; i < nofColors ; i++){
     if (players[player_order[i]].turnDone == false){
       if (message == true && players[player_order[i]].passed == false){
-        setEvent(static_cast<Color>(player_order[i]), LED_ON);
-        message = false;
+        Serial.print("Count");
+        Serial.println(count);
+        if(count == 0)
+        {
+          count++;
+        }
+        else
+        {
+          setEvent(static_cast<Color>(player_order[i]), LED_ON);
+          message = false;
+        }
       }
             
       if (players[player_order[i]].passed == true){
@@ -193,7 +209,7 @@ void resetTurns(){
   if (nofTurnDone == nofPlayers){ 
     sendToDrive();
     for (size_t i = 0; i < nofColors ; i++){
-        players[player_order[i]].turnLength = "";
+        players[i].turnLength = "";
       } 
     nofTurnDone = 0;
     Serial.println("Round ended");
@@ -203,7 +219,8 @@ void resetTurns(){
     if (nofPasses == nofPlayers){ 
 
       for (size_t i = 0; i < nofColors ; i++){
-        players[i].passed = false; 
+        players[i].passed = false;
+        player_order[i] = -1;
       }
       
       if(passOverEnabled == false && changePlayerOrderEnabled == false){
