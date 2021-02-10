@@ -10,11 +10,12 @@ int length_of_turn_s;
 boolean turnBegings = true;
 boolean message = false;
 
-boolean predictablePlayerOrderEnabled;  
-boolean passOverEnabled;
-boolean changePlayerOrderEnabled;
-boolean changeOrderByOneStepEnabled;
-boolean onlyOneTurnPerPhase;
+//Brass settings
+boolean predictablePlayerOrderEnabled = true;  
+boolean passOverEnabled = false;
+boolean changePlayerOrderEnabled = true;
+boolean changeOrderByOneStepEnabled = false;
+boolean onlyOneTurnPerPhase = true;
 
 int nofOrderSelected = 0;
 int nofPasses = 0;
