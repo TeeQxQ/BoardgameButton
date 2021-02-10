@@ -37,6 +37,179 @@ const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nUser-
 //const char* ssids[nofKnownWifis] = {"Kalat_ja_Rapu_2G", "TeeQNote9", "PikkuPingviini"};
 //const char* passwords[nofKnownWifis] = {"rutaQlli", "rutaQlli", "Pinquliini"};
 
+//Arrays to buffer events to be send/received
+//There is slot for every defined color
+Event receivedEvents[nofColors] = { UNKNOWN };
+Event outgoingEvents[nofColors] = { UNKNOWN };
+
+
+//--------------------Event sending/receiving--------------------
+
+//Set new event to be sent later to the <color>
+void setEvent(Color color, EventType type, int data = 0)
+{
+  Event e;
+  e.type = type;
+  e.data = data;
+  outgoingEvents[color] = e;
+}
+
+//Get the latest available event from the <color>
+Event getEvent(Color color)
+{
+  return receivedEvents[static_cast<int>(color)];
+}
+
+//Sends a single event to a single client
+int sendEvent(const Color color, const Event event)
+{
+  //Sends message to the master button itself
+  /*if(color == BTN_COLOR)
+  {
+    //Store the event
+    receivedEvents[color] = event;
+    return 0;
+  }*/
+  
+  //Don't send unknown events
+  if (event.type == UNKNOWN)
+  {
+    return -1;
+  }
+  else if(clients[color] != NULL && clients[color]->connected())
+  {
+    //Construct a message
+    msg::msg["color"] = color;
+    msg::msg["event"] = static_cast<int>(event.type);
+    msg::msg["data"] = static_cast<int>(event.data);
+
+    //Serialize the message and send it
+    serializeJson(msg::msg, *clients[color]);
+
+    Serial.println("Event sent:");
+    Serial.print("Color: ");
+    Serial.println(static_cast<int>(color));
+    Serial.print("Event type: ");
+    Serial.println(static_cast<int>(event.type));
+    Serial.print("Event data: ");
+    Serial.println(static_cast<int>(event.data));
+    Serial.println("");
+  }
+  else
+  {
+    Serial.print("Client at index ");
+    Serial.print(static_cast<int>(color));
+    Serial.println(" is not connected!");
+    return -1;
+  }
+
+  return 0;
+}
+
+//Send all buffered events to all available clients
+void sendAllEvents()
+{
+  for (size_t color = 0; color < nofColors; color++)
+  {
+    /*if(color == BTN_COLOR)
+    {
+      sendEvent(static_cast<Color>(color), outgoingEvents[color]);
+    }*/
+
+    if(clients[color] != NULL && clients[color]->connected())
+    {
+      //Don't spam unknown (empty) events
+      if (outgoingEvents[static_cast<int>(color)].type != UNKNOWN)
+      {
+        sendEvent(static_cast<Color>(color), outgoingEvents[color]);
+      }
+    }
+  }
+}
+
+
+//Receive new event (if available) from the <color> client
+Event receiveEvent(Color color)
+{
+  Event e;
+  e.type = UNKNOWN;
+  e.data = 0;
+
+  /*if(color == BTN_COLOR)
+  {
+    e = receivedEvents[static_cast<int>(color)];
+  }
+  else */
+
+  if (clients[static_cast<int>(color)] != NULL && 
+      clients[static_cast<int>(color)]->available())
+  {
+    msg::err = deserializeJson(msg::msg, *clients[static_cast<int>(color)]);
+    if (msg::err)
+    {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(msg::err.f_str());
+    }
+    else
+    {
+      //Construct an event from the message:
+      e.type = msg::msg["event"];
+      e.data = msg::msg["data"];
+
+      Serial.println("Received event:");
+      Serial.print("Color: ");
+      Serial.println(static_cast<int>(color));
+      Serial.print("Event: ");
+      Serial.println(static_cast<int>(e.type));
+      Serial.print("Data: ");
+      Serial.println(static_cast<int>(e.data));
+      Serial.println("");
+    }
+  }
+  return e;
+}
+
+//Receive all new events from available clients
+void receiveAllEvents()
+{
+  for(size_t color = 0; color < nofColors; color++)
+  {
+    //Don't store unknown events
+    Event e = receiveEvent(static_cast<Color>(color));
+    if (e.type != UNKNOWN)
+    {
+      receivedEvents[color] = e;
+    }
+  }
+}
+
+//Clear the outgoing buffer
+void clearOutgoingEvents()
+{
+  //Serial.println(outgoingEvents[static_cast<Color>(2)].type);
+  for(size_t color = 0; color < nofColors; color++)
+  {
+    Event *e = &outgoingEvents[static_cast<Color>(color)];
+    e->type = UNKNOWN;
+    e->data = 0;
+  }
+  //Serial.println(outgoingEvents[static_cast<Color>(2)].type);
+}
+
+//Clear the receiving buffer
+void clearReceivedEvents()
+{
+  //Serial.println(receivedEvents[static_cast<Color>(2)].type);
+  for(size_t color = 0; color < nofColors; color++)
+  {
+    Event *e = &receivedEvents[static_cast<Color>(color)];
+    e->type = UNKNOWN;
+    e->data = 0;
+  }
+  //Serial.println(receivedEvents[static_cast<Color>(2)].type);
+}
+
+
 //--------------------Client connections--------------------
 
 //Check new clients 
@@ -192,6 +365,30 @@ void OnWiFiEvent(WiFiEvent_t event)
   }
 }
 
+//--------------------Google Drive connection--------------------
+
+void sendToDrive (){
+
+  //Reconnect if connection lost
+  if (!driveClient.connected()) {
+    Serial.println("No connection to google drive, reconnecting...");
+    while (!driveClient.connect(driveHost, drivePort)) {
+      Serial.println("connection failed");
+    }
+    Serial.println("Google drive reconnected!");
+  }
+
+  String colorTimes ="";
+  colorTimes += "green=" + players[GREEN].turnLength;
+  colorTimes += "&blue=" + players[BLUE].turnLength;
+  colorTimes += "&red=" + players[RED].turnLength;
+  colorTimes += "&white=" + players[WHITE].turnLength;
+  colorTimes += "&yellow=" + players[YELLOW].turnLength;
+
+  driveClient.print(String("GET ") + url + colorTimes + httpString);
+  Serial.println("Request sent");
+}
+
 void setup()
 {
   //Serial connection for debugging purposes
@@ -206,7 +403,7 @@ void setup()
   createSoftAP();
 
   //Connect to local wifi network
-  //connectToWifi();
+  connectToWifi();
 
   //Start the server
   wifiServer.begin();
@@ -214,6 +411,8 @@ void setup()
 
   //Initialize player list
   initializePlayers();
+
+  sendToDrive();
 }
  
 void loop()
@@ -224,9 +423,9 @@ void loop()
   //Check if new clients are available and store them
   checkNewClients();
 
-  /*if (clients[0] != NULL)
-  {
-    Serial.println(clients[0]->available());
-  }*/
-
+  clearReceivedEvents();
+  sendAllEvents();
+  clearOutgoingEvents();
+  receiveAllEvents();
+  
 }

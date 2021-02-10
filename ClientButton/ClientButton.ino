@@ -92,9 +92,9 @@ void sendEvent(bool debug = false)
     if (debug)
     {
       Serial.println("Event sent:");
-      Serial.print("Event type: ");
-      Serial.println(static_cast<int>(outgoingEvent.type));
-      Serial.print("Event data: ");
+      Serial.print("- Event type: ");
+      Serial.println(eventToString(outgoingEvent.type));
+      Serial.print("- Event data: ");
       Serial.println(static_cast<int>(outgoingEvent.data));
       Serial.println("");
     }
@@ -126,7 +126,7 @@ void receiveEvent(bool debug = false)
       {
         Serial.println("Received event:");
         Serial.print("Event: ");
-        Serial.println(static_cast<int>(receivedEvent.type));
+        Serial.println(eventToString(receivedEvent.type));
         Serial.print("Data: ");
         Serial.println(static_cast<int>(receivedEvent.data));
         Serial.println("");
@@ -292,14 +292,6 @@ void handleBreathing()
      }
   }
 }
-
-/*
-bool breathingEnabled = false;
-const int defaultBreathingDelay_ms = 10;
-int breathingDelay_ms;
-bool inhale = true;
-long lastBreathingTime_ms = 0;
-*/
 
 //--------------------Interrupts--------------------
 
