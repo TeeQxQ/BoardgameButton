@@ -385,6 +385,34 @@ void sendToDrive (){
   Serial.println("Request sent");
 }
 
+String colorToString(Color c)
+{
+  String s = "";
+  switch(static_cast<int>(c))
+  {
+    case RED:
+      s = "RED";
+      break;
+    case BLUE:
+      s = "BLUE";
+      break;
+    case GREEN:
+      s = "GREEN";
+      break;
+    case YELLOW:
+      s = "YELLOW";
+      break;
+    case WHITE:
+      s = "WHITE";
+      break;
+    default:
+      s = "UNDEFINED";
+      break;
+  }
+
+  return s;
+}
+
 void setup()
 {
   //Serial connection for debugging purposes
@@ -429,6 +457,7 @@ void loop()
     //gameLogic();
     clearReceivedEvents();
     sendAllEvents();
+    clearOutgoingEvents();
   }
 
   //gameLogic();

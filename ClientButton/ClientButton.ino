@@ -44,14 +44,6 @@ const char* clientAddress = "192.168.4.1";
 const int clientPort = 80;
 
 //Button related parameters
-volatile byte btn_pressed_counter = 0;
-volatile byte btn_released_counter = 0;
-volatile int btn_state = HIGH;
-volatile unsigned long btn_pressed_time_ms = 0;
-volatile unsigned long btn_released_time_ms = 0;
-const unsigned long btn_long_press_threshold_ms = 750;
-const unsigned long debounceDelay_ms = 50;
-volatile unsigned long lastDebounceTime_ms = 0;
 
 //Increased every time BTN_PIN interrupts
 volatile byte btnChangedCounter = 0;
@@ -64,7 +56,7 @@ volatile unsigned long btnChangedTime_ms = 0;
 const byte thresholdForBtnRelease = 20;
 
 //Time to wait for new state changes from the first BTN_PIN change
-const unsigned long btnChangeRecordTime_ms = 40;
+const unsigned long btnChangeRecordTime_ms = 30;
 
 unsigned long btnPressedTime_ms = 0;
 const unsigned long btnLongPressThreshold_ms = 750;
@@ -106,14 +98,15 @@ void sendEvent(bool debug = false)
     //Serialize the message and send it
     serializeJson(msg::msg, wifiClient);
 
+    clearOutgoingEvent();
+
     if (debug)
     {
-      Serial.println("Event sent:");
-      Serial.print("- Event type: ");
-      Serial.println(eventToString(outgoingEvent.type));
-      Serial.print("- Event data: ");
-      Serial.println(static_cast<int>(outgoingEvent.data));
-      Serial.println("");
+      Serial.print("Event sent: ");
+      Serial.print(eventToString(outgoingEvent.type));
+      Serial.print(" (");
+      Serial.print(static_cast<int>(outgoingEvent.data));
+      Serial.println(")");
     }
   }
   else
@@ -141,12 +134,11 @@ void receiveEvent(bool debug = false)
 
       if (debug)
       {
-        Serial.println("Received event:");
-        Serial.print("Event: ");
-        Serial.println(eventToString(receivedEvent.type));
-        Serial.print("Data: ");
-        Serial.println(static_cast<int>(receivedEvent.data));
-        Serial.println("");
+        Serial.print("Received event: ");
+        Serial.print(eventToString(receivedEvent.type));
+        Serial.print(" (");
+        Serial.print(static_cast<int>(receivedEvent.data));
+        Serial.println(")");
       }
     }
   }
@@ -321,35 +313,6 @@ ISR_PREFIX void handleInterrupt()
     btnChangedTime_ms = millis();
   }
   btnChangedCounter++;
-
-  
-  /*const int btnState = digitalRead(BTN_PIN);
-  Serial.print(millis());
-  Serial.print(":");
-  Serial.println(btnState);*/
-  /*unsigned long currentTime_ms = millis();
-  
-  if (currentTime_ms - lastDebounceTime_ms > debounceDelay_ms)
-  {
-    if (btnState == HIGH)
-    {
-      btn_pressed_counter++;
-      btn_pressed_time_ms = currentTime_ms;
-      //Serial.print("HIGH: ");
-    }
-    else if (btn_pressed_counter > 0)
-    {
-      btn_released_counter++;
-      btn_released_time_ms = currentTime_ms;
-      //Serial.print("LOW and btn pressed earlier: ");
-    }
-    else
-    {
-      Serial.println("error");
-    }
-    lastDebounceTime_ms = currentTime_ms;
-    //Serial.println(currentTime_ms);
-  }*/
 }
 
 //--------------------Buttons--------------------
@@ -366,7 +329,7 @@ void handleButtonPress(bool debug = false)
       unsigned long currentTime_ms = millis();
       if (currentTime_ms - btnChangedTime_ms > btnChangeRecordTime_ms)
       {
-        Serial.println(btnChangedCounter);
+        //Serial.println(btnChangedCounter);
         if (btnChangedCounter >= thresholdForBtnRelease)
         {
           //Button was released
@@ -390,30 +353,6 @@ void handleButtonPress(bool debug = false)
         btnChangedCounter = 0;
       }
   }
-
-  /*
-  if (btn_released_counter > 0)
-  {
-    if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_ms)
-    {
-      btnEvent.type = BTN_LONG;
-      if (debug) Serial.print("Long (");
-    }
-    else
-    {
-      btnEvent.type = BTN_SHORT;
-      if (debug) Serial.print("Short (");
-    }
-    btnEvent.data = static_cast<int>(btn_released_time_ms - btn_pressed_time_ms);
-    if (debug) Serial.print(btn_released_time_ms - btn_pressed_time_ms);
-    if (debug) Serial.println("ms)");
-
-    btn_released_counter = 0;
-    btn_pressed_counter = 0;
-    btn_released_time_ms = millis();
-    btn_pressed_time_ms = btn_released_time_ms;
-    
-  }*/
 
   if (btnEvent.type != UNKNOWN)
   {
@@ -560,16 +499,15 @@ void loop() {
     {
       if (wifiClient && wifiClient.connected())
       {
+        //Send new messages
+        sendEvent(false);
+  
         //Read if there are any new messages from the main button
         receiveEvent();
   
         //Handle new messages
         handleEvent(getEvent(), true);
         clearReceivedEvent();
-  
-        //Send new messages
-        sendEvent(false);
-        clearOutgoingEvent();
       }
     }
   }

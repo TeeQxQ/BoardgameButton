@@ -1,8 +1,11 @@
+#ifndef Color_h
+#define Color_h
+
 //This file defines different IDs for different colors
 
 //This must match with the enum definitions
 //UNDEFINED not counted
-const int nofColors = 5;
+static const int nofColors = 5;
 
 enum Color {
   RED = 0,
@@ -13,6 +16,7 @@ enum Color {
   UNDEFINED = 5
 };
 
+/*
 String colorToString(Color c)
 {
   String s = "";
@@ -39,4 +43,6 @@ String colorToString(Color c)
   }
 
   return s;
-}
+}*/
+
+#endif

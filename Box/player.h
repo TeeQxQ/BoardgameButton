@@ -1,13 +1,23 @@
 #ifndef Player_h
 #define Player_h
 
+#include "colors.h"
+
 class Player
 {
   public:
     Player();
+    Player(Color color);
+    void reset();
+    void setColor(Color newColor);
 
   private:
-    
+    Color color;
+    bool isPlaying;
+    bool passed;
+    bool turnSelected;
+    bool turnDone;
+    unsigned long turnLength_ms;  
 };
 
 #endif
