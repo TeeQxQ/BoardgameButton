@@ -1,3 +1,17 @@
+#ifndef Player_h
+#define Player_h
+
+class Player
+{
+  public:
+    Player();
+
+  private:
+    
+};
+
+#endif
+/*
 typedef struct Player
 {
   Color color;
@@ -9,6 +23,7 @@ typedef struct Player
   
 } Player;
 
+//Array to store all possible players
 Player players[nofColors];
 int nofPlayers = 0;
 
@@ -25,4 +40,4 @@ void initializePlayers()
     players[static_cast<int>(color)].turnLength = "";
     
   }
-}
+}*/

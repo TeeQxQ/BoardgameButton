@@ -1,4 +1,4 @@
-int player_order [nofColors] = {-1, -1, -1, -1, -1};
+/*int player_order [nofColors] = {-1, -1, -1, -1, -1};
 boolean playerOrderSelected = false;
 boolean waitStart = false;
 boolean runPlayPhase = false;
@@ -270,4 +270,4 @@ void endTurn (int i){
   turnBegings = true;
   players[player_order[i]].turnDone = true;
   nofTurnDone++;
-}
+}*/

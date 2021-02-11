@@ -53,6 +53,23 @@ const unsigned long btn_long_press_threshold_ms = 750;
 const unsigned long debounceDelay_ms = 50;
 volatile unsigned long lastDebounceTime_ms = 0;
 
+//Increased every time BTN_PIN interrupts
+volatile byte btnChangedCounter = 0;
+
+//Time when the first BTN_PIN change occured
+volatile unsigned long btnChangedTime_ms = 0;
+
+//Number of changes needed to determine button release, 
+//otherwise considered as button pressing
+const byte thresholdForBtnRelease = 20;
+
+//Time to wait for new state changes from the first BTN_PIN change
+const unsigned long btnChangeRecordTime_ms = 40;
+
+unsigned long btnPressedTime_ms = 0;
+const unsigned long btnLongPressThreshold_ms = 750;
+
+
 //Communication related:
 //Buffer events to be send/received
 Event receivedEvent;
@@ -167,6 +184,7 @@ void handleEvent(const Event e, bool debug = false)
       analogWrite(LED_PIN, LED_BRIGHTNESS_MAX);
       break;
     case LED_OFF:
+      blinkEnabled = false;
       analogWrite(LED_PIN, LED_BRIGHTNESS_MIN);
       break;
     case BLINK:
@@ -298,8 +316,19 @@ void handleBreathing()
 //Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
-  const int btnState = digitalRead(BTN_PIN);
-  unsigned long currentTime_ms = millis();
+  if (btnChangedCounter == 0)
+  {
+    btnChangedTime_ms = millis();
+  }
+  btnChangedCounter++;
+
+  
+  /*const int btnState = digitalRead(BTN_PIN);
+  Serial.print(millis());
+  Serial.print(":");
+  Serial.println(btnState);*/
+  /*unsigned long currentTime_ms = millis();
+  
   if (currentTime_ms - lastDebounceTime_ms > debounceDelay_ms)
   {
     if (btnState == HIGH)
@@ -308,15 +337,19 @@ ISR_PREFIX void handleInterrupt()
       btn_pressed_time_ms = currentTime_ms;
       //Serial.print("HIGH: ");
     }
-    else
+    else if (btn_pressed_counter > 0)
     {
       btn_released_counter++;
       btn_released_time_ms = currentTime_ms;
-      //Serial.print("LOW: ");
+      //Serial.print("LOW and btn pressed earlier: ");
+    }
+    else
+    {
+      Serial.println("error");
     }
     lastDebounceTime_ms = currentTime_ms;
     //Serial.println(currentTime_ms);
-  }
+  }*/
 }
 
 //--------------------Buttons--------------------
@@ -326,33 +359,65 @@ void handleButtonPress(bool debug = false)
 {
   Event btnEvent;
   btnEvent.type = UNKNOWN;
+  btnEvent.data = 0;
 
+  if (btnChangedCounter > 0)
+  {
+      unsigned long currentTime_ms = millis();
+      if (currentTime_ms - btnChangedTime_ms > btnChangeRecordTime_ms)
+      {
+        Serial.println(btnChangedCounter);
+        if (btnChangedCounter >= thresholdForBtnRelease)
+        {
+          //Button was released
+          if (btnChangedTime_ms - btnPressedTime_ms >= btnLongPressThreshold_ms)
+          {
+            btnEvent.type = BTN_LONG;
+          }
+          else
+          {
+            btnEvent.type = BTN_SHORT;
+          }
+          btnEvent.data = static_cast<int>(btnChangedTime_ms - btnPressedTime_ms);
+        }
+        else
+        {
+          //Button was pressed
+          btnPressedTime_ms = btnChangedTime_ms;
+        }
+
+        //Changes handled, reset the counter
+        btnChangedCounter = 0;
+      }
+  }
+
+  /*
   if (btn_released_counter > 0)
   {
     if (btn_released_time_ms - btn_pressed_time_ms > btn_long_press_threshold_ms)
     {
       btnEvent.type = BTN_LONG;
-      if (debug) Serial.println("Long btn press");
+      if (debug) Serial.print("Long (");
     }
     else
     {
       btnEvent.type = BTN_SHORT;
-      if (debug) Serial.println("Short btn press");
+      if (debug) Serial.print("Short (");
     }
-    if (debug) Serial.print("Time: ");
-    if (debug) Serial.println(btn_released_time_ms - btn_pressed_time_ms);
+    btnEvent.data = static_cast<int>(btn_released_time_ms - btn_pressed_time_ms);
+    if (debug) Serial.print(btn_released_time_ms - btn_pressed_time_ms);
+    if (debug) Serial.println("ms)");
 
     btn_released_counter = 0;
     btn_pressed_counter = 0;
     btn_released_time_ms = millis();
     btn_pressed_time_ms = btn_released_time_ms;
     
-  }
+  }*/
 
   if (btnEvent.type != UNKNOWN)
   {
-    setEvent(btnEvent.type);
-    //if (debug) Serial.println(btnEvent.type);
+    setEvent(btnEvent.type, btnEvent.data);
   }
 }
 
@@ -460,9 +525,9 @@ void setup() {
 //--------------------Main program--------------------
 
 void loop() {
-
+  
   //Handle button press
-  handleButtonPress(true);
+  handleButtonPress();
 
   //Handle blinking
   handleBlinking();
@@ -503,7 +568,7 @@ void loop() {
         clearReceivedEvent();
   
         //Send new messages
-        sendEvent(true);
+        sendEvent(false);
         clearOutgoingEvent();
       }
     }

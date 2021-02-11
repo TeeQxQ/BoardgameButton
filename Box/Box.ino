@@ -1,5 +1,6 @@
 #include "ArduinoJson.h"
 #include "colors.h"
+#include "game.h"
 #include "events.h"
 #include "messages.h"
 #include "player.h"
@@ -16,8 +17,8 @@ const bool HIDE_AP = false;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "PikkuPingviini";
-const char* network_password = "Pinquliini";
+const char* network_ssid = "Kalat_ja_Rapu_2G";
+const char* network_password = "rutaQlli";
 
 //Server related parameters:
 const int WIFI_PORT = 80;
@@ -41,7 +42,7 @@ const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nUser-
 //There is slot for every defined color
 Event receivedEvents[nofColors] = { UNKNOWN };
 Event outgoingEvents[nofColors] = { UNKNOWN };
-
+bool newEventsReceived = false;
 
 //--------------------Event sending/receiving--------------------
 
@@ -85,20 +86,19 @@ int sendEvent(const Color color, Event event)
 
     //Serialize the message and send it
     serializeJson(msg::msg, *clients[color]);
-    /*
-    Serial.println("Event sent:");
-    Serial.print("Color: ");
-    Serial.println(colorToString(color));
-    Serial.print("Event type: ");
+    
+    Serial.println("Event sent (:");
+    Serial.print(colorToString(color));
+    Serial.print("): ");
     Serial.println(eventToString(event));
-    Serial.print("Event data: ");
+    /*Serial.print("Event data: ");
     Serial.println(static_cast<int>(event.data));
     Serial.println("");*/
   }
   else
   {
-    Serial.print("Client at index ");
-    Serial.print(static_cast<int>(color));
+    Serial.print("Sending event failed. Color ");
+    Serial.print(colorToString(color));
     Serial.println(" is not connected!");
     return -1;
   }
@@ -111,11 +111,6 @@ void sendAllEvents()
 {
   for (size_t color = 0; color < nofColors; color++)
   {
-    /*if(color == BTN_COLOR)
-    {
-      sendEvent(static_cast<Color>(color), outgoingEvents[color]);
-    }*/
-
     if(clients[color] != NULL && clients[color]->connected())
     {
       //Don't spam unknown (empty) events
@@ -135,12 +130,6 @@ Event receiveEvent(Color color)
   e.type = UNKNOWN;
   e.data = 0;
 
-  /*if(color == BTN_COLOR)
-  {
-    e = receivedEvents[static_cast<int>(color)];
-  }
-  else */
-
   if (clients[static_cast<int>(color)] != NULL && 
       clients[static_cast<int>(color)]->available())
   {
@@ -149,28 +138,31 @@ Event receiveEvent(Color color)
     {
       Serial.print(F("deserializeJson() failed: "));
       Serial.println(msg::err.f_str());
+      return e;
     }
-    else
-    {
-      //Construct an event from the message:
-      e.type = msg::msg["event"];
-      e.data = msg::msg["data"];
 
-      Serial.println("Received event:");
-      Serial.print("Color: ");
-      Serial.println(colorToString(color));
-      Serial.print("Event: ");
-      Serial.println(eventToString(e));
-      Serial.print("Data: ");
-      Serial.println(static_cast<int>(e.data));
-      Serial.println("");
+    //Construct an event from the message:
+    e.type = msg::msg["event"];
+    e.data = msg::msg["data"];
+
+    Serial.print("Received event (");
+    Serial.print(colorToString(color));
+    Serial.print("): ");
+    Serial.print(eventToString(e));
+
+    if (e.type == BTN_SHORT || e.type == BTN_LONG)
+    {
+      Serial.print(" (");
+      Serial.print(static_cast<int>(e.data));
+      Serial.println(")");
     }
   }
+  
   return e;
 }
 
 //Receive all new events from available clients
-void receiveAllEvents()
+bool receiveAllEvents()
 {
   for(size_t color = 0; color < nofColors; color++)
   {
@@ -179,8 +171,11 @@ void receiveAllEvents()
     if (e.type != UNKNOWN)
     {
       receivedEvents[color] = e;
+      return true;
     }
   }
+
+  return false;
 }
 
 //Clear the outgoing buffer
@@ -261,10 +256,11 @@ int checkNewClients()
       int indexOfColor = 0;
       for (size_t i = 0; i< nofColors; i++)
       {
-        if (players[i].color == static_cast<Color>(e.data)) indexOfColor = i;
+        //if (players[i].color == static_cast<Color>(e.data)) indexOfColor = i;
       }
 
       //Check if player reconnected
+      /*
       if (players[indexOfColor].isPlaying == false)
       {
         //Add new player to the game
@@ -274,7 +270,7 @@ int checkNewClients()
         Serial.print("New player ");
         Serial.print(colorToString(static_cast<Color>(e.data)));
         Serial.println(" added to the game");
-      }
+      }*/
 
       while(newClient.available() > 0)
       {
@@ -350,10 +346,10 @@ void OnWiFiEvent(WiFiEvent_t event)
   switch (event) {
  
     case SYSTEM_EVENT_STA_CONNECTED:
-      Serial.println("ESP32 Connected to WiFi Network");
+      //Serial.println("ESP32 Connected to WiFi Network");
       break;
     case SYSTEM_EVENT_AP_START:
-      Serial.println("ESP32 soft AP started");
+      //Serial.println("ESP32 soft AP started");
       break;
     case SYSTEM_EVENT_AP_STACONNECTED:
       Serial.println("Station connected to ESP32 soft AP");
@@ -379,11 +375,11 @@ void sendToDrive (){
   }
 
   String colorTimes ="";
-  colorTimes += "green=" + players[GREEN].turnLength;
+  /*colorTimes += "green=" + players[GREEN].turnLength;
   colorTimes += "&blue=" + players[BLUE].turnLength;
   colorTimes += "&red=" + players[RED].turnLength;
   colorTimes += "&white=" + players[WHITE].turnLength;
-  colorTimes += "&yellow=" + players[YELLOW].turnLength;
+  colorTimes += "&yellow=" + players[YELLOW].turnLength;*/
 
   driveClient.print(String("GET ") + url + colorTimes + httpString);
   Serial.println("Request sent");
@@ -410,7 +406,7 @@ void setup()
   Serial.println("Game server started");
 
   //Initialize player list
-  initializePlayers();
+  //initializePlayers();
 
   //Only for testing purposes
   //sendToDrive();
@@ -424,11 +420,22 @@ void loop()
   //Check if new clients are available and store them
   checkNewClients();
 
+  //Check wheter any client send a message
+  //If so, store them for later processing
+  newEventsReceived = receiveAllEvents();
+  
+  if (newEventsReceived)
+  {
+    //gameLogic();
+    clearReceivedEvents();
+    sendAllEvents();
+  }
+
   //gameLogic();
 
-  clearReceivedEvents();
-  sendAllEvents();
-  clearOutgoingEvents();
-  receiveAllEvents();
+  //clearReceivedEvents();
+  //sendAllEvents();
+  //clearOutgoingEvents();
+  //receiveAllEvents();
   
 }
