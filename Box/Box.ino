@@ -44,6 +44,52 @@ Event receivedEvents[nofColors] = { UNKNOWN };
 Event outgoingEvents[nofColors] = { UNKNOWN };
 bool newEventsReceived = false;
 
+
+void eventToString(Event e, char* arr)
+{
+  switch(static_cast<int>(e.type))
+  {
+    case UNKNOWN:
+      strncpy(arr, "UNKNOWN", 7);
+      arr[7] = '\0';
+      break;
+    /*case LED:
+      s = "LED";
+      break;
+    case LED_ON:
+      s = "LED_ON";
+      break;
+    case LED_OFF:
+      s = "LED_OFF";
+      break;
+    case BLINK:
+      s = "BLINK_ON";
+      break;
+    case BLINK_ON:
+      s = "BLINK_ON";
+      break;
+    case BLINK_OFF:
+      s = "BLINK_OFF";
+      break;*/
+    case BTN_SHORT:
+      strncpy(arr, "BTN_SHORT", 9);
+      arr[9] = '\0';
+      break;
+    case BTN_LONG:
+      strncpy(arr, "BTN_LONG", 8);
+      arr[8] = '\0';
+      break;
+    case COLOR:
+      strncpy(arr, "COLOR", 5);
+      arr[5] = '\0';
+      break;
+    default:
+      strncpy(arr, "DEFAULT", 7);
+      arr[7] = '\0';
+      break;
+  }
+}
+
 //--------------------Event sending/receiving--------------------
 
 //Set new event to be sent later to the <color>
@@ -90,7 +136,7 @@ int sendEvent(const Color color, Event event)
     Serial.println("Event sent (:");
     Serial.print(colorToString(color));
     Serial.print("): ");
-    Serial.println(eventToString(event));
+    //Serial.println(eventToString(event));
     /*Serial.print("Event data: ");
     Serial.println(static_cast<int>(event.data));
     Serial.println("");*/
@@ -148,13 +194,20 @@ Event receiveEvent(Color color)
     Serial.print("Received event (");
     Serial.print(colorToString(color));
     Serial.print("): ");
-    Serial.print(eventToString(e));
+
+    char charArray[25];
+    eventToString(e, charArray);
+    Serial.print(charArray);
 
     if (e.type == BTN_SHORT || e.type == BTN_LONG)
     {
       Serial.print(" (");
       Serial.print(static_cast<int>(e.data));
       Serial.println(")");
+    }
+    else
+    {
+      Serial.println("");
     }
   }
   

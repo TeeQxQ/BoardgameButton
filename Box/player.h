@@ -11,7 +11,6 @@ class Player
     void reset();
     void setColor(Color newColor);
 
-  private:
     Color color;
     bool isPlaying;
     bool passed;

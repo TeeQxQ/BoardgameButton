@@ -9,7 +9,7 @@ Player::Player()
 
 Player::Player(Color color)
 {
-  this->color = color;
+  setColor(color);
   isPlaying = false;
   reset();
 }
