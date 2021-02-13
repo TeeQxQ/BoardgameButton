@@ -44,6 +44,38 @@ Event receivedEvents[nofColors] = { UNKNOWN };
 Event outgoingEvents[nofColors] = { UNKNOWN };
 bool newEventsReceived = false;
 
+//Game related
+Game game;
+
+//--------------------Debug helpers--------------------
+
+String colorToString(Color c)
+{
+  String s = "";
+  switch(static_cast<int>(c))
+  {
+    case RED:
+      s = "RED";
+      break;
+    case BLUE:
+      s = "BLUE";
+      break;
+    case GREEN:
+      s = "GREEN";
+      break;
+    case YELLOW:
+      s = "YELLOW";
+      break;
+    case WHITE:
+      s = "WHITE";
+      break;
+    default:
+      s = "UNDEFINED";
+      break;
+  }
+
+  return s;
+}
 
 void eventToString(Event e, char* arr)
 {
@@ -53,24 +85,30 @@ void eventToString(Event e, char* arr)
       strncpy(arr, "UNKNOWN", 7);
       arr[7] = '\0';
       break;
-    /*case LED:
-      s = "LED";
+    case LED:
+      strncpy(arr, "LED", 3);
+      arr[4] = '\0';
       break;
     case LED_ON:
-      s = "LED_ON";
+      strncpy(arr, "LED_ON", 6);
+      arr[7] = '\0';
       break;
     case LED_OFF:
-      s = "LED_OFF";
+      strncpy(arr, "LED_OFF", 7);
+      arr[8] = '\0';
       break;
     case BLINK:
-      s = "BLINK_ON";
+      strncpy(arr, "BLINK", 5);
+      arr[6] = '\0';
       break;
     case BLINK_ON:
-      s = "BLINK_ON";
+      strncpy(arr, "BLINK_ON", 8);
+      arr[9] = '\0';
       break;
     case BLINK_OFF:
-      s = "BLINK_OFF";
-      break;*/
+      strncpy(arr, "BLINK_OFF", 9);
+      arr[10] = '\0';
+      break;
     case BTN_SHORT:
       strncpy(arr, "BTN_SHORT", 9);
       arr[9] = '\0';
@@ -133,9 +171,12 @@ int sendEvent(const Color color, Event event)
     //Serialize the message and send it
     serializeJson(msg::msg, *clients[color]);
     
-    Serial.println("Event sent (:");
+    Serial.print("Event sent (");
     Serial.print(colorToString(color));
     Serial.print("): ");
+    char charArray[25];
+    eventToString(event, charArray);
+    Serial.println(charArray);
     //Serial.println(eventToString(event));
     /*Serial.print("Event data: ");
     Serial.println(static_cast<int>(event.data));
@@ -306,11 +347,19 @@ int checkNewClients()
       clients[static_cast<int>(e.data)] = new WiFiClient(newClient);
       Serial.println("New client added successfully");
 
+      if (game.addPlayer(static_cast<Color>(e.data)))
+      {
+        Serial.print("New player ");
+        Serial.print(colorToString(static_cast<Color>(e.data)));
+        Serial.println(" added to the game");
+      }
+
+      /*
       int indexOfColor = 0;
       for (size_t i = 0; i< nofColors; i++)
       {
         //if (players[i].color == static_cast<Color>(e.data)) indexOfColor = i;
-      }
+      }*/
 
       //Check if player reconnected
       /*
@@ -438,34 +487,6 @@ void sendToDrive (){
   Serial.println("Request sent");
 }
 
-String colorToString(Color c)
-{
-  String s = "";
-  switch(static_cast<int>(c))
-  {
-    case RED:
-      s = "RED";
-      break;
-    case BLUE:
-      s = "BLUE";
-      break;
-    case GREEN:
-      s = "GREEN";
-      break;
-    case YELLOW:
-      s = "YELLOW";
-      break;
-    case WHITE:
-      s = "WHITE";
-      break;
-    default:
-      s = "UNDEFINED";
-      break;
-  }
-
-  return s;
-}
-
 void setup()
 {
   //Serial connection for debugging purposes
@@ -485,6 +506,9 @@ void setup()
   //Start the server
   wifiServer.begin();
   Serial.println("Game server started");
+
+  //Initialize game
+  game.init();
 
   //Initialize player list
   //initializePlayers();
@@ -507,7 +531,15 @@ void loop()
   
   if (newEventsReceived)
   {
-    //gameLogic();
+    for (size_t i = 0; i < nofColors; i++)
+    {
+      const Event e = getEvent(static_cast<Color>(i));
+      if (e.type != UNKNOWN)
+      {
+        const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
+        setEvent(returnAction.color, returnAction.type);
+      }
+    }
     clearReceivedEvents();
     sendAllEvents();
     clearOutgoingEvents();

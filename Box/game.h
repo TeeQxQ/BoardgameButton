@@ -8,42 +8,48 @@
 
 class Game
 {
-  typedef struct Action
-  {
-    Color color;
-    EventType type;
-
-    Action(Color color, EventType type)
-    {
-      this->color = color;
-      this->type = type;
-    }
-    
-  } Action;
-
   public:
+
+    typedef struct Action
+    {
+      Color color;
+      EventType type;
+  
+      Action(Color color, EventType type)
+      {
+        this->color = color;
+        this->type = type;
+      }
+      
+    } Action;
+  
     Game();
     void init();
-    void play();
+    const Game::Action play(const Action action);
     void reset();
     void save();
     void load();
-    void addPlayer(Color color);
-    void removePlayer(Color color);
+    bool addPlayer(Color color);
+    bool removePlayer(Color color);
 
   private:
-    static const int maxNofPlayers = 5;
-    Player players[maxNofPlayers];
+    static const int mMaxNofPlayers = 5;
+    Player mPlayers[mMaxNofPlayers];
+
+    unsigned int mJoinedPlayers;
+    
+    //Cumulative count of allocated turn orders
+    unsigned int mNofTurnsSelected;
 
     //Settings
-    bool predictablePlayerOrderEnabled = true;  
-    bool passOverEnabled = false;
-    bool changePlayerOrderEnabled = true;
-    bool changeOrderByOneStepEnabled = false;
-    bool onlyOneTurnPerPhase = true;
+    bool mPredictablePlayerOrderEnabled = true;  
+    bool mPassOverEnabled = false;
+    bool mChangePlayerOrderEnabled = true;
+    bool mChangeOrderByOneStepEnabled = false;
+    bool mOnlyOneTurnPerPhase = true;
 
     bool orderIsSelected();
-    void selectOrder();
+    const Game::Action selectOrder(const Action action);
     void finishTurn();
     
 };

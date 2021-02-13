@@ -11,12 +11,26 @@ class Player
     void reset();
     void setColor(Color newColor);
 
-    Color color;
-    bool isPlaying;
-    bool passed;
-    bool turnSelected;
-    bool turnDone;
-    unsigned long turnLength_ms;  
+    //Getters and setters
+    bool isPlaying();
+    void isPlaying(bool newState);
+    bool passed();
+    void passed(bool newState);
+    bool turnSelected();
+    void turnSelected(bool newState);
+    bool turnDone();
+    void turnDone(bool newState);
+    unsigned int turnIndex();
+    void setTurnIndex(const unsigned int newTurnIndex);
+
+  private:
+    Color mColor;
+    bool mIsPlaying;
+    bool mPassed;
+    bool mTurnSelected;
+    bool mTurnDone;
+    unsigned int mTurnIndex;
+    unsigned long mTurnLength_ms;  
 };
 
 #endif

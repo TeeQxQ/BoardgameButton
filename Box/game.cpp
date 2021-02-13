@@ -7,56 +7,78 @@ Game::Game()
 
 void Game::init()
 {
-  for (int i = 0; i < maxNofPlayers; i++)
+  this->reset();
+
+  //Set unique color for each possible player
+  for (int i = 0; i < mMaxNofPlayers; i++)
   {
     if (i < nofColors)
     {
-      players[i].setColor(static_cast<Color>(i));
+      mPlayers[i].setColor(static_cast<Color>(i));
     }
   }
+
+  mJoinedPlayers = 0;
 }
 
-void Game::play()
+const Game::Action Game::play(const Action action)
 {
   if (orderIsSelected())
   {
-    
+    Serial.println("Order selected");
   }
-  selectOrder();
+  return selectOrder(action);
 }
 
 void Game::reset()
 {
   //reset players
-  for (int i = 0; i < maxNofPlayers; i++)
+  for (int i = 0; i < mMaxNofPlayers; i++)
   {
-    players[i].reset();
+    mPlayers[i].reset();
   }
+
+  mNofTurnsSelected = 0;
 }
 
-void Game::addPlayer(Color color)
+bool Game::addPlayer(Color color)
 {
+  //Add player unless it is already in game
   int indexOfColor = static_cast<int>(color);
-  if (indexOfColor < maxNofPlayers)
+  if (indexOfColor < mMaxNofPlayers && !mPlayers[indexOfColor].isPlaying())
   {
-    players[indexOfColor].isPlaying = true;
+    mPlayers[indexOfColor].isPlaying(true);
+    mJoinedPlayers++;
+    return true;
   }
+
+  return false;
 }
 
-void Game::removePlayer(Color color)
+bool Game::removePlayer(Color color)
 {
+  //Remove player unless it is not in game
   int indexOfColor = static_cast<int>(color);
-  if (indexOfColor < maxNofPlayers)
+  if (indexOfColor < mMaxNofPlayers && mPlayers[indexOfColor].isPlaying())
   {
-    players[indexOfColor].isPlaying = false;
-  }
+    mPlayers[indexOfColor].isPlaying(false);
+    mJoinedPlayers--;
+    return true;
+  } 
+
+  return false;
 }
 
 bool Game::orderIsSelected()
 {
-  for (int i = 0; i < maxNofPlayers; i++)
+  if (mJoinedPlayers <= 0)
   {
-    if (players[i].isPlaying != players[i].turnSelected)
+    return false;
+  }
+
+  for (int i = 0; i < mMaxNofPlayers; i++)
+  {
+    if (mPlayers[i].isPlaying() != mPlayers[i].turnSelected())
     {
       return false;
     }
@@ -64,7 +86,19 @@ bool Game::orderIsSelected()
   return true;
 }
 
-void Game::selectOrder()
+const Game::Action Game::selectOrder(const Action action)
 {
-  
+  if (action.type == BTN_SHORT)
+  {
+    Player& player = mPlayers[static_cast<unsigned int>(action.color)];
+    
+    //If player hasn't yet chosen turn, allocate now
+    if (player.isPlaying() && !player.turnSelected())
+    {
+      player.setTurnIndex(mNofTurnsSelected++);
+      return Action(action.color, LED_ON);
+    }
+  }
+
+  return Action(UNDEFINED, UNKNOWN);
 }
