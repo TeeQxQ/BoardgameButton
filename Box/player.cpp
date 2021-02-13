@@ -19,6 +19,7 @@ void Player::reset()
   mPassed = false;
   mTurnSelected = false;
   mTurnDone = false;
+  mTurnIndex = undefinedTurnIndex;
   mTurnLength_ms = 0; 
 }
 
@@ -54,6 +55,10 @@ bool Player::turnSelected()
 
 void Player::turnSelected(bool newState)
 {
+  if (newState == false)
+  {
+    mTurnIndex = undefinedTurnIndex;
+  }
   mTurnSelected = newState;
 }
 
@@ -74,6 +79,9 @@ unsigned int Player::turnIndex()
 
 void Player::setTurnIndex(const unsigned int newTurnIndex)
 {
-  mTurnIndex = newTurnIndex;
-  this->turnSelected(true);
+  if (newTurnIndex < undefinedTurnIndex)
+  {
+    mTurnIndex = newTurnIndex;
+    this->turnSelected(true);
+  }
 }

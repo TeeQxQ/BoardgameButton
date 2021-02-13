@@ -25,7 +25,16 @@ const Game::Action Game::play(const Action action)
 {
   if (orderIsSelected())
   {
-    Serial.println("Order selected");
+    if (action.type == BTN_SHORT)
+    {
+      return selectOrder(action);
+    }
+
+    if (action.type == BTN_LONG)
+    {
+      Serial.println("Order selected");
+      return Action(UNDEFINED, UNKNOWN);
+    }
   }
   return selectOrder(action);
 }
@@ -93,10 +102,30 @@ const Game::Action Game::selectOrder(const Action action)
     Player& player = mPlayers[static_cast<unsigned int>(action.color)];
     
     //If player hasn't yet chosen turn, allocate now
-    if (player.isPlaying() && !player.turnSelected())
+    if (player.isPlaying())
     {
-      player.setTurnIndex(mNofTurnsSelected++);
-      return Action(action.color, LED_ON);
+      if (!player.turnSelected())
+      {
+        player.setTurnIndex(mNofTurnsSelected++);
+        return Action(action.color, LED_ON);
+      }
+      return deSelectOrder(action);
+    }
+  }
+
+  return Action(UNDEFINED, UNKNOWN);
+}
+
+const Game::Action Game::deSelectOrder(const Action action)
+{
+  if (action.type == BTN_SHORT)
+  {
+    Player& player = mPlayers[static_cast<unsigned int>(action.color)];
+
+    if (player.isPlaying() && player.turnSelected())
+    {
+      player.turnSelected(false);
+      return Action(action.color, LED_OFF);
     }
   }
 

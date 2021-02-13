@@ -30,7 +30,9 @@ class Player
     bool mTurnSelected;
     bool mTurnDone;
     unsigned int mTurnIndex;
-    unsigned long mTurnLength_ms;  
+    unsigned long mTurnLength_ms; 
+
+    static const unsigned int undefinedTurnIndex = 999;
 };
 
 #endif

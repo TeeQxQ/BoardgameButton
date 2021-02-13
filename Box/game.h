@@ -50,6 +50,7 @@ class Game
 
     bool orderIsSelected();
     const Game::Action selectOrder(const Action action);
+    const Game::Action deSelectOrder(const Action action);
     void finishTurn();
     
 };
