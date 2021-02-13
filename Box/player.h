@@ -32,7 +32,7 @@ class Player
     unsigned int mTurnIndex;
     unsigned long mTurnLength_ms; 
 
-    static const unsigned int undefinedTurnIndex = 999;
+    static const unsigned int undefinedTurnIndex = 99;
 };
 
 #endif

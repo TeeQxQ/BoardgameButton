@@ -11,13 +11,27 @@ enum EventType {
   BLINK_OFF = 6,
   BTN_SHORT,
   BTN_LONG,
-  COLOR
+  COLOR,
+  ADDED,
+  REMOVED
 };
 
 typedef struct Event
 {
   EventType type;
   int data;
+
+  Event()
+  {
+    this->type = UNKNOWN;
+    this->data = 0;
+  }
+
+  Event(EventType type, int data = 0)
+  {
+    this->type = type;
+    this->data = data;
+  }
 } Event;
 
 #endif

@@ -147,15 +147,7 @@ Event getEvent(Color color)
 
 //Sends a single event to a single client
 int sendEvent(const Color color, Event event)
-{
-  //Sends message to the master button itself
-  /*if(color == BTN_COLOR)
-  {
-    //Store the event
-    receivedEvents[color] = event;
-    return 0;
-  }*/
-  
+{ 
   //Don't send unknown events
   if (event.type == UNKNOWN)
   {
@@ -347,11 +339,16 @@ int checkNewClients()
       clients[static_cast<int>(e.data)] = new WiFiClient(newClient);
       Serial.println("New client added successfully");
 
-      if (game.addPlayer(static_cast<Color>(e.data)))
+      const Game::Action returnAction = game.addPlayer(static_cast<Color>(e.data));
+      if (returnAction.type == ADDED)
       {
         Serial.print("New player ");
         Serial.print(colorToString(static_cast<Color>(e.data)));
         Serial.println(" added to the game");
+      }
+      else
+      {
+        sendEvent(returnAction.color, Event(returnAction.type));
       }
 
       /*

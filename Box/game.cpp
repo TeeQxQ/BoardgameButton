@@ -23,20 +23,15 @@ void Game::init()
 
 const Game::Action Game::play(const Action action)
 {
-  if (orderIsSelected())
+  switch (currentGameState())
   {
-    if (action.type == BTN_SHORT)
-    {
-      return selectOrder(action);
-    }
-
-    if (action.type == BTN_LONG)
-    {
-      Serial.println("Order selected");
-      return Action(UNDEFINED, UNKNOWN);
-    }
+    case ORDER_SELECTION:
+      return playOrderSelection(action);
+      break;
+    default:
+      break;
   }
-  return selectOrder(action);
+  return Action(UNDEFINED, UNKNOWN);
 }
 
 void Game::reset()
@@ -48,23 +43,31 @@ void Game::reset()
   }
 
   mNofTurnsSelected = 0;
+  state = ORDER_SELECTION;
 }
 
-bool Game::addPlayer(Color color)
+const Game::Action Game::addPlayer(Color color)
 {
   //Add player unless it is already in game
   int indexOfColor = static_cast<int>(color);
-  if (indexOfColor < mMaxNofPlayers && !mPlayers[indexOfColor].isPlaying())
+  if (indexOfColor < mMaxNofPlayers)
   {
-    mPlayers[indexOfColor].isPlaying(true);
-    mJoinedPlayers++;
-    return true;
+    //Add new player
+    if (!mPlayers[indexOfColor].isPlaying())
+    {
+      mPlayers[indexOfColor].isPlaying(true);
+      mJoinedPlayers++;
+      return Action(color, ADDED);
+    }
+  
+    //Rejoin existing player
+    return rejoinPlayer(color);
   }
 
-  return false;
+  return Action(UNDEFINED, UNKNOWN);
 }
 
-bool Game::removePlayer(Color color)
+const Game::Action Game::removePlayer(Color color)
 {
   //Remove player unless it is not in game
   int indexOfColor = static_cast<int>(color);
@@ -72,10 +75,56 @@ bool Game::removePlayer(Color color)
   {
     mPlayers[indexOfColor].isPlaying(false);
     mJoinedPlayers--;
-    return true;
+    return Action(color, REMOVED);
   } 
 
-  return false;
+  return Action(UNDEFINED, UNKNOWN);
+}
+
+const Game::Action Game::rejoinPlayer(Color color)
+{
+  int indexOfColor = static_cast<int>(color);
+  if (indexOfColor < mMaxNofPlayers && mPlayers[indexOfColor].isPlaying())
+  {
+    switch (state)
+    {
+      case ORDER_SELECTION:
+        if (mPlayers[indexOfColor].turnSelected())
+        {
+          return Action(color, LED_ON);
+        }
+        return Action(color, LED_OFF);
+        break;
+      default:
+        break;
+    }
+  }
+
+  return Action(UNDEFINED, UNKNOWN);
+}
+
+Game::state_t Game::currentGameState()
+{
+  return state;
+}
+
+const Game::Action Game::playOrderSelection(const Action action)
+{
+  if (orderIsSelected())
+  {
+    if (action.type == BTN_SHORT)
+    {
+      return selectOrder(action);
+    }
+
+    if (action.type == BTN_LONG)
+    {
+      Serial.println("Order selected");
+      nextState();
+      return Action(UNDEFINED, UNKNOWN);
+    }
+  }
+  return selectOrder(action);
 }
 
 bool Game::orderIsSelected()
@@ -130,4 +179,9 @@ const Game::Action Game::deSelectOrder(const Action action)
   }
 
   return Action(UNDEFINED, UNKNOWN);
+}
+
+void Game::nextState()
+{
+  
 }

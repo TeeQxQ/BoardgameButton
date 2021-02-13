@@ -173,6 +173,7 @@ void handleEvent(const Event e, bool debug = false)
       analogWrite(LED_PIN, map(ledBrightness, 0, 100, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
       break;
     case LED_ON:
+      blinkEnabled = false;
       analogWrite(LED_PIN, LED_BRIGHTNESS_MAX);
       break;
     case LED_OFF:
