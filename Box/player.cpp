@@ -77,7 +77,7 @@ unsigned int Player::turnIndex()
   return mTurnIndex;
 }
 
-void Player::setTurnIndex(const unsigned int newTurnIndex)
+void Player::turnIndex(const unsigned int newTurnIndex)
 {
   if (newTurnIndex < undefinedTurnIndex)
   {

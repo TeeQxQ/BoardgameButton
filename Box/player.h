@@ -3,9 +3,13 @@
 
 #include "colors.h"
 
+
+
 class Player
 {
   public:
+    static const unsigned int undefinedTurnIndex = 99;
+
     Player();
     Player(Color color);
     void reset();
@@ -21,7 +25,7 @@ class Player
     bool turnDone();
     void turnDone(bool newState);
     unsigned int turnIndex();
-    void setTurnIndex(const unsigned int newTurnIndex);
+    void turnIndex(const unsigned int newTurnIndex);
 
   private:
     Color mColor;
@@ -32,7 +36,6 @@ class Player
     unsigned int mTurnIndex;
     unsigned long mTurnLength_ms; 
 
-    static const unsigned int undefinedTurnIndex = 99;
 };
 
 #endif

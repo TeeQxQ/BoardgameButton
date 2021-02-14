@@ -43,7 +43,7 @@ class Game
       PLAY_TURNS
     };
 
-    Game::state_t state;
+    Game::state_t mState;
     static const int mMaxNofPlayers = 5;
     Player mPlayers[mMaxNofPlayers];
 
@@ -63,9 +63,14 @@ class Game
     void nextState();
     
     const Game::Action playOrderSelection(const Action action);
+    const Game::Action playTurns(const Action action);
     bool orderIsSelected();
     const Game::Action selectOrder(const Action action);
     const Game::Action deSelectOrder(const Action action);
+
+    //Because of the order deselect/select, turn indexes may include gaps
+    //This method removes them
+    void cleanOrder();
     
     void finishTurn();
     

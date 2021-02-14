@@ -28,6 +28,9 @@ const Game::Action Game::play(const Action action)
     case ORDER_SELECTION:
       return playOrderSelection(action);
       break;
+    case PLAY_TURNS:
+      return playTurns(action);
+      break;
     default:
       break;
   }
@@ -43,7 +46,7 @@ void Game::reset()
   }
 
   mNofTurnsSelected = 0;
-  state = ORDER_SELECTION;
+  mState = ORDER_SELECTION;
 }
 
 const Game::Action Game::addPlayer(Color color)
@@ -86,7 +89,7 @@ const Game::Action Game::rejoinPlayer(Color color)
   int indexOfColor = static_cast<int>(color);
   if (indexOfColor < mMaxNofPlayers && mPlayers[indexOfColor].isPlaying())
   {
-    switch (state)
+    switch (mState)
     {
       case ORDER_SELECTION:
         if (mPlayers[indexOfColor].turnSelected())
@@ -105,7 +108,7 @@ const Game::Action Game::rejoinPlayer(Color color)
 
 Game::state_t Game::currentGameState()
 {
-  return state;
+  return mState;
 }
 
 const Game::Action Game::playOrderSelection(const Action action)
@@ -120,11 +123,25 @@ const Game::Action Game::playOrderSelection(const Action action)
     if (action.type == BTN_LONG)
     {
       Serial.println("Order selected");
+      cleanOrder();
       nextState();
       return Action(UNDEFINED, UNKNOWN);
     }
   }
   return selectOrder(action);
+}
+
+const Game::Action Game::playTurns(const Action action)
+{
+  Serial.println("Play turns");
+  for (int i = 0; i < mMaxNofPlayers; i++)
+  {
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(mPlayers[i].turnIndex());
+  }
+  
+  return Action(UNDEFINED, UNKNOWN);
 }
 
 bool Game::orderIsSelected()
@@ -155,7 +172,7 @@ const Game::Action Game::selectOrder(const Action action)
     {
       if (!player.turnSelected())
       {
-        player.setTurnIndex(mNofTurnsSelected++);
+        player.turnIndex(mNofTurnsSelected++);
         return Action(action.color, LED_ON);
       }
       return deSelectOrder(action);
@@ -181,7 +198,38 @@ const Game::Action Game::deSelectOrder(const Action action)
   return Action(UNDEFINED, UNKNOWN);
 }
 
+void Game::cleanOrder()
+{
+  for (unsigned int orderIndex = 0; orderIndex < mJoinedPlayers; ++orderIndex)
+  {
+    unsigned int smallestIndex = Player::undefinedTurnIndex;
+    unsigned int playerIndex = 0;
+    for (unsigned int i = 0; i < mMaxNofPlayers; ++i)
+    {
+      if (mPlayers[i].isPlaying())
+      {
+        if (mPlayers[i].turnIndex() < smallestIndex &&
+            mPlayers[i].turnIndex() >= orderIndex)
+           {
+              smallestIndex = mPlayers[i].turnIndex();
+              playerIndex = i;
+           }
+      }
+    }
+    mPlayers[playerIndex].turnIndex(orderIndex);
+  }
+}
+
 void Game::nextState()
 {
-  
+  switch (mState)
+  {
+    case ORDER_SELECTION:
+      mState = PLAY_TURNS;
+      break;
+    case PLAY_TURNS:
+      break;
+    default:
+      break;
+  }
 }
