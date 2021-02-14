@@ -14,7 +14,8 @@ enum EventType {
   COLOR,
   ADDED,
   REMOVED,
-  ALL_OFF_EXCEPT_ONE
+  ALL_OFF_EXCEPT_ONE,
+  BLINK_ALL
 };
 
 typedef struct Event

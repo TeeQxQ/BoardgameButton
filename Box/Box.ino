@@ -147,6 +147,17 @@ void setEvent(Color color, EventType type, int data = 0)
     outgoingEvents[color] = e;
     return;
   }
+
+  if (type == BLINK_ALL)
+  {
+    e.type = BLINK;
+    e.data = 5;
+    for (size_t i = 0; i < nofColors; ++i)
+    {
+      outgoingEvents[i] = e;
+    }
+    return;
+  }
   
   e.type = type;
   e.data = data;

@@ -259,6 +259,13 @@ const Game::Action Game::playSingleTurn(const Action action)
   Serial.println("Play single turn");
 
   Player& player = mPlayers[static_cast<unsigned int>(action.color)];
+
+  //If someone not in turn pressed, return
+  if (player.turnIndex() != mIndexOfPlayerInTurn)
+  {
+    return Action(UNDEFINED, UNKNOWN);
+  }
+  
   if(player.isPlaying() && !player.turnDone())
   {
     unsigned int currentTurnCount = player.turnCount();
@@ -309,6 +316,6 @@ void Game::nextState()
 
 const Game::Action Game::finishRound()
 {
-  Serial.println("Finish round");
-  return Action(UNDEFINED, UNKNOWN);
+  this->reset();
+  return Action(UNDEFINED, BLINK_ALL);
 }

@@ -158,49 +158,6 @@ void clearReceivedEvent()
   receivedEvent.data = 0;
 }
 
-//--------------------Event handling--------------------
-
-void handleEvent(const Event e, bool debug = false)
-{
-  switch (e.type)
-  {
-    case UNKNOWN:
-      break;
-    case LED:
-      ledBrightness = static_cast<int>(e.data);
-      if (ledBrightness > 100) ledBrightness = 100;
-      if (ledBrightness < 0) ledBrightness = 0;
-      analogWrite(LED_PIN, map(ledBrightness, 0, 100, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
-      break;
-    case LED_ON:
-      blinkEnabled = false;
-      analogWrite(LED_PIN, LED_BRIGHTNESS_MAX);
-      break;
-    case LED_OFF:
-      blinkEnabled = false;
-      analogWrite(LED_PIN, LED_BRIGHTNESS_MIN);
-      break;
-    case BLINK:
-      blinkEnabled = true;
-      break;
-    case BLINK_ON:
-      blinkEnabled = true;
-      break;
-    case BLINK_OFF:
-      blinkEnabled = false;
-      analogWrite(LED_PIN, LED_BRIGHTNESS_MIN);
-      break;
-    case BTN_SHORT:
-      break;
-    case BTN_LONG:
-      break;
-    case COLOR:
-      setEvent(COLOR, BTN_COLOR);
-      if (debug) Serial.println("Color asked");
-      break;
-  }
-}
-
 //--------------------Effects--------------------
 
 void startBlinking()
@@ -301,6 +258,49 @@ void handleBreathing()
       }
       analogWrite(LED_PIN, map(ledBrightness, 0, 100, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
      }
+  }
+}
+
+//--------------------Event handling--------------------
+
+void handleEvent(const Event e, bool debug = false)
+{
+  switch (e.type)
+  {
+    case UNKNOWN:
+      break;
+    case LED:
+      ledBrightness = static_cast<int>(e.data);
+      if (ledBrightness > 100) ledBrightness = 100;
+      if (ledBrightness < 0) ledBrightness = 0;
+      analogWrite(LED_PIN, map(ledBrightness, 0, 100, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
+      break;
+    case LED_ON:
+      blinkEnabled = false;
+      analogWrite(LED_PIN, LED_BRIGHTNESS_MAX);
+      break;
+    case LED_OFF:
+      blinkEnabled = false;
+      analogWrite(LED_PIN, LED_BRIGHTNESS_MIN);
+      break;
+    case BLINK:
+      blink(static_cast<int>(e.data));
+      break;
+    case BLINK_ON:
+      blinkEnabled = true;
+      break;
+    case BLINK_OFF:
+      blinkEnabled = false;
+      analogWrite(LED_PIN, LED_BRIGHTNESS_MIN);
+      break;
+    case BTN_SHORT:
+      break;
+    case BTN_LONG:
+      break;
+    case COLOR:
+      setEvent(COLOR, BTN_COLOR);
+      if (debug) Serial.println("Color asked");
+      break;
   }
 }
 
