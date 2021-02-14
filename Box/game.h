@@ -60,17 +60,25 @@ class Game
     unsigned int mIndexOfPlayerInTurn;
 
     //Settings
-    bool mPredictablePlayerOrder = true;  
-    bool mPassOver = false;
-    bool mChangePlayerOrder = true;
-    bool mChangeOrderByOneStep = false;
-    bool mOnlyOneTurnPerPhase = true;
+    bool mPredictablePlayerOrder;  
+    bool mPassOver;
+    bool mChangePlayerOrder;
+    bool mChangeOrderByOneStep;
+    bool mOnlyOneTurnPerPhase;
+    unsigned int mTurnsPerRound;
+
+    //Definition for unlimited number of turns per player
+    static const unsigned int unlimitedTurns = 9999;
+
+    //Get settings from drive or SD card
+    void fetchGameSettings();
 
     state_t currentGameState();
     void nextState();
     
     const Game::Action playOrderSelection(const Action action);
     const Game::Action playTurns(const Action action);
+
     bool orderIsSelected();
     const Game::Action selectOrder(const Action action);
     const Game::Action deSelectOrder(const Action action);
@@ -78,10 +86,16 @@ class Game
     //Because of the order deselect/select, turn indexes may include gaps
     //This method removes them
     void cleanOrder();
-    //Index of the next player in turn
+    //Get index of the next player in turn
     unsigned int nextInOrder();
+    //Pass turn to the next player
+    void nextPlayer();
+
+    const Game::Action playSingleTurn(const Action action);
+
+    bool allPassed();
     
-    void finishTurn();
+    const Game::Action finishRound();
     
 };
 

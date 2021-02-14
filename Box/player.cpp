@@ -19,6 +19,7 @@ void Player::reset()
   mPassed = false;
   mTurnSelected = false;
   mTurnDone = false;
+  mTurnCount = 0;
   mTurnIndex = undefinedTurnIndex;
   mTurnLength_ms = 0; 
 }
@@ -50,6 +51,10 @@ bool Player::passed()
 
 void Player::passed(bool newState)
 {
+  if (newState == true)
+  {
+    mTurnCount = 0;
+  }
   mPassed = newState;
 }
 
@@ -74,6 +79,10 @@ bool Player::turnDone()
 
 void Player::turnDone(bool newState)
 {
+  if (newState == true)
+  {
+    mTurnCount = 0;
+  }
   mTurnDone = newState;
 }
 
@@ -89,4 +98,14 @@ void Player::turnIndex(const unsigned int newTurnIndex)
     mTurnIndex = newTurnIndex;
     this->turnSelected(true);
   }
+}
+
+unsigned int Player::turnCount()
+{
+  return mTurnCount;
+}
+
+void Player::turnCount(unsigned int newCount)
+{
+  mTurnCount = newCount;
 }

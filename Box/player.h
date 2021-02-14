@@ -27,12 +27,15 @@ class Player
     void turnDone(bool newState);
     unsigned int turnIndex();
     void turnIndex(const unsigned int newTurnIndex);
+    unsigned int turnCount();
+    void turnCount(unsigned int newCount);
 
   private:
     Color mColor;
     bool mIsPlaying;
     bool mPassed;
     bool mTurnSelected;
+    unsigned int mTurnCount;  //Cumulative count of the turns done during this phase
     bool mTurnDone;
     unsigned int mTurnIndex;
     unsigned long mTurnLength_ms; 

@@ -39,6 +39,8 @@ const Game::Action Game::play(const Action action)
 
 void Game::reset()
 {
+  fetchGameSettings();
+  
   //reset players
   for (int i = 0; i < mMaxNofPlayers; i++)
   {
@@ -107,6 +109,18 @@ const Game::Action Game::rejoinPlayer(Color color)
   return Action(UNDEFINED, UNKNOWN);
 }
 
+void Game::fetchGameSettings()
+{
+  //TODO
+
+  mPredictablePlayerOrder = true;  
+  mPassOver = false;
+  mChangePlayerOrder = true;
+  mChangeOrderByOneStep = false;
+  mOnlyOneTurnPerPhase = true;
+  mTurnsPerRound = 1;
+}
+
 Game::state_t Game::currentGameState()
 {
   return mState;
@@ -133,12 +147,14 @@ const Game::Action Game::playOrderSelection(const Action action)
 
 const Game::Action Game::playTurns(const Action action)
 {
-  Serial.println("Play turns");
-  for (int i = 0; i < mMaxNofPlayers; i++)
+  if (action.type == BTN_SHORT)
   {
-    Serial.print(i);
-    Serial.print(": ");
-    Serial.println(mPlayers[i].turnIndex());
+    return playSingleTurn(action);
+  }
+
+  if (action.type == BTN_LONG)
+  {
+    //TODO äppäppää
   }
   
   return Action(UNDEFINED, UNKNOWN);
@@ -233,6 +249,50 @@ unsigned int Game::nextInOrder()
   return 0;
 }
 
+void Game::nextPlayer()
+{
+  mIndexOfPlayerInTurn = ++mIndexOfPlayerInTurn % mJoinedPlayers;
+}
+
+const Game::Action Game::playSingleTurn(const Action action)
+{
+  Serial.println("Play single turn");
+
+  Player& player = mPlayers[static_cast<unsigned int>(action.color)];
+  if(player.isPlaying() && !player.turnDone())
+  {
+    unsigned int currentTurnCount = player.turnCount();
+    player.turnCount(++currentTurnCount);
+    
+    if (player.turnCount() >= mTurnsPerRound)
+    {
+      player.turnDone(true);
+      nextPlayer();
+      player.passed(true);
+    }
+  }
+  
+  if (allPassed())
+  {
+    return finishRound();
+  }
+
+  return Action(mPlayers[nextInOrder()].color(), ALL_OFF_EXCEPT_ONE);
+}
+
+bool Game::allPassed()
+{
+  for (unsigned int i = 0; i < mMaxNofPlayers; ++i)
+  {
+    if (mPlayers[i].isPlaying() && !mPlayers[i].passed())
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void Game::nextState()
 {
   switch (mState)
@@ -245,4 +305,10 @@ void Game::nextState()
     default:
       break;
   }
+}
+
+const Game::Action Game::finishRound()
+{
+  Serial.println("Finish round");
+  return Action(UNDEFINED, UNKNOWN);
 }
