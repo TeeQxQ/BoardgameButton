@@ -16,6 +16,7 @@ class Player
     void setColor(Color newColor);
 
     //Getters and setters
+    const Color color();
     bool isPlaying();
     void isPlaying(bool newState);
     bool passed();

@@ -13,7 +13,8 @@ enum EventType {
   BTN_LONG,
   COLOR,
   ADDED,
-  REMOVED
+  REMOVED,
+  ALL_OFF_EXCEPT_ONE
 };
 
 typedef struct Event

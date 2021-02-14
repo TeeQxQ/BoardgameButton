@@ -43,14 +43,21 @@ class Game
       PLAY_TURNS
     };
 
+    //Current state of the game
     Game::state_t mState;
+
     static const int mMaxNofPlayers = 5;
     Player mPlayers[mMaxNofPlayers];
 
+    //Cumulative count of player joined
     unsigned int mJoinedPlayers;
     
     //Cumulative count of allocated turn orders
     unsigned int mNofTurnsSelected;
+
+    //Current player in turn (not the index in array)
+    //E.g. first 0, then 1 etc.
+    unsigned int mIndexOfPlayerInTurn;
 
     //Settings
     bool mPredictablePlayerOrder = true;  
@@ -71,6 +78,8 @@ class Game
     //Because of the order deselect/select, turn indexes may include gaps
     //This method removes them
     void cleanOrder();
+    //Index of the next player in turn
+    unsigned int nextInOrder();
     
     void finishTurn();
     

@@ -134,6 +134,20 @@ void eventToString(Event e, char* arr)
 void setEvent(Color color, EventType type, int data = 0)
 {
   Event e;
+
+  if (type == ALL_OFF_EXCEPT_ONE)
+  {
+    e.type = LED_OFF;
+    e.data = 0;
+    for (size_t i = 0; i < nofColors; ++i)
+    {
+      outgoingEvents[i] = e;
+    }
+    e.type = LED_ON;
+    outgoingEvents[color] = e;
+    return;
+  }
+  
   e.type = type;
   e.data = data;
   outgoingEvents[color] = e;

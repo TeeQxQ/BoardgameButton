@@ -46,6 +46,7 @@ void Game::reset()
   }
 
   mNofTurnsSelected = 0;
+  mIndexOfPlayerInTurn = 0;
   mState = ORDER_SELECTION;
 }
 
@@ -122,10 +123,9 @@ const Game::Action Game::playOrderSelection(const Action action)
 
     if (action.type == BTN_LONG)
     {
-      Serial.println("Order selected");
       cleanOrder();
       nextState();
-      return Action(UNDEFINED, UNKNOWN);
+      return Action(mPlayers[nextInOrder()].color(), ALL_OFF_EXCEPT_ONE);
     }
   }
   return selectOrder(action);
@@ -218,6 +218,19 @@ void Game::cleanOrder()
     }
     mPlayers[playerIndex].turnIndex(orderIndex);
   }
+}
+
+unsigned int Game::nextInOrder()
+{
+  for (unsigned int i = 0; i < mMaxNofPlayers; ++i)
+  {
+    if (mPlayers[i].turnIndex() == mIndexOfPlayerInTurn)
+    {
+      return i;
+    }
+  }
+
+  return 0;
 }
 
 void Game::nextState()

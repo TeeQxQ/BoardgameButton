@@ -28,6 +28,11 @@ void Player::setColor(Color newColor)
   this->mColor = newColor;
 }
 
+const Color Player::color()
+{
+  return mColor;
+}
+
 bool Player::isPlaying()
 {
   return mIsPlaying;
