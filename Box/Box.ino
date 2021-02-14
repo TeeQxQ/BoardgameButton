@@ -487,7 +487,7 @@ void OnWiFiEvent(WiFiEvent_t event)
 
 //--------------------Google Drive connection--------------------
 
-void sendToDrive (){
+void sendToDrive (unsigned long turnLengths_ms[5]){
 
   //Reconnect if connection lost
   if (!driveClient.connected()) {
@@ -499,11 +499,11 @@ void sendToDrive (){
   }
 
   String colorTimes ="";
-  /*colorTimes += "green=" + players[GREEN].turnLength;
-  colorTimes += "&blue=" + players[BLUE].turnLength;
-  colorTimes += "&red=" + players[RED].turnLength;
-  colorTimes += "&white=" + players[WHITE].turnLength;
-  colorTimes += "&yellow=" + players[YELLOW].turnLength;*/
+  colorTimes += "green="  + String(turnLengths_ms[static_cast<int>(GREEN)]); // + "1"; //players[GREEN].turnLength;
+  colorTimes += "&blue=" + String(turnLengths_ms[static_cast<int>(BLUE)]); // + "2"; //players[BLUE].turnLength;
+  colorTimes += "&red=" + String(turnLengths_ms[static_cast<int>(RED)]); // + "3"; //players[RED].turnLength;
+  colorTimes += "&white=" + String(turnLengths_ms[static_cast<int>(WHITE)]); // + "4"; //players[WHITE].turnLength;
+  colorTimes += "&yellow=" + String(turnLengths_ms[static_cast<int>(YELLOW)]); // + "5"; //players[YELLOW].turnLength;
 
   driveClient.print(String("GET ") + url + colorTimes + httpString);
   Serial.println("Request sent");
@@ -530,7 +530,7 @@ void setup()
   Serial.println("Game server started");
 
   //Initialize game
-  game.init();
+  game.init(sendToDrive);
 
   //Initialize player list
   //initializePlayers();

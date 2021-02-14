@@ -8,6 +8,8 @@
 
 class Game
 {
+  typedef void(*dbFunc_t)(unsigned long[5]);
+  
   public:
 
     typedef struct Action
@@ -27,6 +29,7 @@ class Game
   
     Game();
     void init();
+    void init(dbFunc_t saveToDriveFunc);
     const Game::Action play(const Action action);
     void reset();
     void save();
@@ -59,6 +62,12 @@ class Game
     //E.g. first 0, then 1 etc.
     unsigned int mIndexOfPlayerInTurn;
 
+    //Start of a turn
+    unsigned long mTurnStartTime_ms;
+
+    //Pointer to a function which stores results to the drive
+    dbFunc_t saveToDb;
+
     //Settings
     bool mPredictablePlayerOrder;  
     bool mPassOver;
@@ -75,13 +84,14 @@ class Game
 
     state_t currentGameState();
     void nextState();
-    
-    const Game::Action playOrderSelection(const Action action);
-    const Game::Action playTurns(const Action action);
 
     bool orderIsSelected();
+    const Game::Action playOrderSelection(const Action action);
+    const Game::Action playTurns(const Action action);
     const Game::Action selectOrder(const Action action);
     const Game::Action deSelectOrder(const Action action);
+    const Game::Action playSingleTurn(const Action action);
+    const Game::Action finishRound();
 
     //Because of the order deselect/select, turn indexes may include gaps
     //This method removes them
@@ -91,11 +101,8 @@ class Game
     //Pass turn to the next player
     void nextPlayer();
 
-    const Game::Action playSingleTurn(const Action action);
-
     bool allPassed();
-    
-    const Game::Action finishRound();
+
     
 };
 

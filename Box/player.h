@@ -29,6 +29,9 @@ class Player
     void turnIndex(const unsigned int newTurnIndex);
     unsigned int turnCount();
     void turnCount(unsigned int newCount);
+    unsigned long turnLength();
+    void addTurnLength(unsigned long length_ms);
+    void resetTurnLength();
 
   private:
     Color mColor;

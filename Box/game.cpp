@@ -21,6 +21,12 @@ void Game::init()
   mJoinedPlayers = 0;
 }
 
+void Game::init(dbFunc_t saveToDriveFunc)
+{
+  this->init();
+  saveToDb = saveToDriveFunc;
+}
+
 const Game::Action Game::play(const Action action)
 {
   switch (currentGameState())
@@ -251,6 +257,11 @@ unsigned int Game::nextInOrder()
 
 void Game::nextPlayer()
 {
+  unsigned long currentTime_ms = millis();
+  Player& player = mPlayers[nextInOrder()];
+  player.addTurnLength(currentTime_ms - mTurnStartTime_ms);
+  mTurnStartTime_ms = currentTime_ms;
+
   mIndexOfPlayerInTurn = ++mIndexOfPlayerInTurn % mJoinedPlayers;
 }
 
@@ -304,6 +315,7 @@ void Game::nextState()
   {
     case ORDER_SELECTION:
       mState = PLAY_TURNS;
+      mTurnStartTime_ms = millis();
       break;
     case PLAY_TURNS:
       break;
@@ -314,6 +326,15 @@ void Game::nextState()
 
 const Game::Action Game::finishRound()
 {
+  unsigned long turnLengths_ms[mMaxNofPlayers];
+  for(unsigned int i = 0; i < mMaxNofPlayers; ++i)
+  {
+    turnLengths_ms[i] = mPlayers[i].turnLength();
+  }
+
+  //Save turn lengths to the db (Google drive)
+  saveToDb(turnLengths_ms);
+  
   this->reset();
   return Action(UNDEFINED, BLINK_ALL);
 }

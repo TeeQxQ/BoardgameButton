@@ -21,7 +21,7 @@ void Player::reset()
   mTurnDone = false;
   mTurnCount = 0;
   mTurnIndex = undefinedTurnIndex;
-  mTurnLength_ms = 0; 
+  resetTurnLength(); 
 }
 
 void Player::setColor(Color newColor)
@@ -108,4 +108,19 @@ unsigned int Player::turnCount()
 void Player::turnCount(unsigned int newCount)
 {
   mTurnCount = newCount;
+}
+
+unsigned long Player::turnLength()
+{
+  return mTurnLength_ms;
+}
+
+void Player::addTurnLength(unsigned long length_ms)
+{
+  mTurnLength_ms += length_ms;
+}
+
+void Player::resetTurnLength()
+{
+  mTurnLength_ms = 0;
 }
