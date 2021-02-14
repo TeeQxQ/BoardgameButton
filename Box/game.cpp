@@ -256,8 +256,6 @@ void Game::nextPlayer()
 
 const Game::Action Game::playSingleTurn(const Action action)
 {
-  Serial.println("Play single turn");
-
   Player& player = mPlayers[static_cast<unsigned int>(action.color)];
 
   //If someone not in turn pressed, return
