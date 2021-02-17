@@ -327,13 +327,19 @@ void Game::nextState()
 const Game::Action Game::finishRound()
 {
   unsigned long turnLengths_ms[mMaxNofPlayers];
+  unsigned long turnLengths_s[mMaxNofPlayers];
   for(unsigned int i = 0; i < mMaxNofPlayers; ++i)
   {
     turnLengths_ms[i] = mPlayers[i].turnLength();
+    turnLengths_s[i] = mPlayers[i].turnLength_s();
   }
 
   //Save turn lengths to the db (Google drive)
-  saveToDb(turnLengths_ms);
+  if (saveToDb)
+  {
+    //saveToDb(turnLengths_ms);
+    saveToDb(turnLengths_s);
+  }
   
   this->reset();
   return Action(UNDEFINED, BLINK_ALL);

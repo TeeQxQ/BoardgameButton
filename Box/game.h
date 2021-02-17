@@ -24,16 +24,15 @@ class Game
         this->type = type;
         this->data = data;
       }
-      
     } Action;
   
     Game();
     void init();
-    void init(dbFunc_t saveToDriveFunc);
-    const Game::Action play(const Action action);
+    void init(dbFunc_t saveToDriveFunc);  
     void reset();
     void save();
     void load();
+    const Game::Action play(const Action action);
     const Game::Action addPlayer(Color color);
     const Game::Action removePlayer(Color color);
     const Game::Action rejoinPlayer(Color color);

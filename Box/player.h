@@ -30,6 +30,7 @@ class Player
     unsigned int turnCount();
     void turnCount(unsigned int newCount);
     unsigned long turnLength();
+    unsigned long turnLength_s();
     void addTurnLength(unsigned long length_ms);
     void resetTurnLength();
 

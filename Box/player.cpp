@@ -115,6 +115,11 @@ unsigned long Player::turnLength()
   return mTurnLength_ms;
 }
 
+unsigned long Player::turnLength_s()
+{
+  return (mTurnLength_ms > 0) ? mTurnLength_ms / 1000 + 1 : 0;
+}
+
 void Player::addTurnLength(unsigned long length_ms)
 {
   mTurnLength_ms += length_ms;

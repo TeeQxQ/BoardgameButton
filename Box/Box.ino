@@ -31,7 +31,7 @@ const char* driveHost = "script.google.com";
 const int drivePort = 443;
 const String GAS_ID = "AKfycbzn_JvVTjFdTwfLjchA6kIjdkF8AiGZ-ODYY8G_f6nFaeMyzuP9torUzQ";
 const String url = "/macros/s/" + GAS_ID + "/exec?";
-const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nUser-Agent: BuildFailureDetectorESP8266\r\nConnection: keep-alive\r\n\r\n";
+const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: keep-alive\r\n\r\n";
 
 
 //const int nofKnownWifis = 3;
@@ -487,7 +487,7 @@ void OnWiFiEvent(WiFiEvent_t event)
 
 //--------------------Google Drive connection--------------------
 
-void sendToDrive (unsigned long turnLengths_ms[5]){
+void sendToDrive (unsigned long turnLengths_s[5]){
 
   //Reconnect if connection lost
   if (!driveClient.connected()) {
@@ -499,11 +499,11 @@ void sendToDrive (unsigned long turnLengths_ms[5]){
   }
 
   String colorTimes ="";
-  colorTimes += "green="  + String(turnLengths_ms[static_cast<int>(GREEN)]); // + "1"; //players[GREEN].turnLength;
-  colorTimes += "&blue=" + String(turnLengths_ms[static_cast<int>(BLUE)]); // + "2"; //players[BLUE].turnLength;
-  colorTimes += "&red=" + String(turnLengths_ms[static_cast<int>(RED)]); // + "3"; //players[RED].turnLength;
-  colorTimes += "&white=" + String(turnLengths_ms[static_cast<int>(WHITE)]); // + "4"; //players[WHITE].turnLength;
-  colorTimes += "&yellow=" + String(turnLengths_ms[static_cast<int>(YELLOW)]); // + "5"; //players[YELLOW].turnLength;
+  colorTimes += "green="  + String(turnLengths_s[static_cast<int>(GREEN)]);
+  colorTimes += "&blue=" + String(turnLengths_s[static_cast<int>(BLUE)]);
+  colorTimes += "&red=" + String(turnLengths_s[static_cast<int>(RED)]);
+  colorTimes += "&white=" + String(turnLengths_s[static_cast<int>(WHITE)]);
+  colorTimes += "&yellow=" + String(turnLengths_s[static_cast<int>(YELLOW)]);
 
   driveClient.print(String("GET ") + url + colorTimes + httpString);
   Serial.println("Request sent");
