@@ -486,10 +486,10 @@ void OnWiFiEvent(WiFiEvent_t event)
       //Serial.println("ESP32 soft AP started");
       break;
     case SYSTEM_EVENT_AP_STACONNECTED:
-      Serial.println("Station connected to ESP32 soft AP");
+      //Serial.println("Station connected to ESP32 soft AP");
       break;
     case SYSTEM_EVENT_AP_STADISCONNECTED:
-      Serial.println("Station disconnected from ESP32 soft AP");
+      //Serial.println("Station disconnected from ESP32 soft AP");
       break;
     default: break;
   }
@@ -507,10 +507,17 @@ void addLogEntry(unsigned long turnLengths_s[nofColors])
     return;
   }
 
+  Serial.println("----------");
   for (size_t i = 0; i < nofColors; ++i)
   {
     turnBuffer[nofBufferedLogEntries][i] = turnLengths_s[i];
+    
+    Serial.print(colorToString(static_cast<Color>(i)));
+    Serial.print(": ");
+    Serial.print(turnLengths_s[i]);
+    Serial.println("s");
   }
+  Serial.println("----------");
   
   ++nofBufferedLogEntries;
 }
@@ -518,6 +525,7 @@ void addLogEntry(unsigned long turnLengths_s[nofColors])
 void clearLogBuffer()
 {
   newLogEntriesAvailable = false;
+  nofBufferedLogEntries = 0;
 
   for (size_t i = 0; i < maxNofBufferedTurns; ++i)
   {
@@ -532,6 +540,8 @@ void clearLogBuffer()
 
 void logToDrive()
 {
+  Serial.println("Start logging to Google Drive...");
+
   //Check if drive connection was left open, this should not happen
   if (driveClient.connected())
   {
@@ -555,12 +565,22 @@ void logToDrive()
 
   //Construct new data entry
   String colorTimes ="";
-  colorTimes += "entries=1";
+  colorTimes += "entries=" + String(nofBufferedLogEntries);
+  for (size_t i = 0; i < nofBufferedLogEntries; ++i)
+  {
+    colorTimes += "&green=" + String(turnBuffer[i][static_cast<int>(GREEN)]);
+    colorTimes += "&blue=" + String(turnBuffer[i][static_cast<int>(BLUE)]);
+    colorTimes += "&red=" + String(turnBuffer[i][static_cast<int>(RED)]);
+    colorTimes += "&white=" + String(turnBuffer[i][static_cast<int>(WHITE)]);
+    colorTimes += "&yellow=" + String(turnBuffer[i][static_cast<int>(YELLOW)]);
+  }
+
+  /*
   colorTimes += "&green=99&green=88"; //  + String(turnLengths_s[static_cast<int>(GREEN)]);
   colorTimes += "&blue=6"; // + String(turnLengths_s[static_cast<int>(BLUE)]);
   colorTimes += "&red=8"; // + String(turnLengths_s[static_cast<int>(RED)]);
   colorTimes += "&white=8"; // + String(turnLengths_s[static_cast<int>(WHITE)]);
-  colorTimes += "&yellow=3"; // + String(turnLengths_s[static_cast<int>(YELLOW)]);
+  colorTimes += "&yellow=3"; // + String(turnLengths_s[static_cast<int>(YELLOW)]);*/
 
   //Log new entry to the Drive
   Serial.println("Trying to log new data...");
@@ -662,70 +682,6 @@ void logToDrive()
   
 }
 
-void sendToDrive (unsigned long turnLengths_s[5])
-{
-
-  //logToDrive(turnLengths_s);
-
-  /*
-  //Reconnect if connection lost
-  if (!driveClient.connected()) {
-    Serial.println("No connection to google drive, reconnecting...");
-    while (!driveClient.connect(driveHost, drivePort)) {
-      Serial.println("connection failed");
-    }
-    Serial.println("Google drive reconnected!");
-  }
-
-  String colorTimes ="";
-  colorTimes += "green="  + String(turnLengths_s[static_cast<int>(GREEN)]);
-  colorTimes += "&blue=" + String(turnLengths_s[static_cast<int>(BLUE)]);
-  colorTimes += "&red=" + String(turnLengths_s[static_cast<int>(RED)]);
-  colorTimes += "&white=" + String(turnLengths_s[static_cast<int>(WHITE)]);
-  colorTimes += "&yellow=" + String(turnLengths_s[static_cast<int>(YELLOW)]);
-
-  driveClient.print(String("GET ") + url + colorTimes + httpString);
-  Serial.println("Request sent");
-  while(driveClient.connected())
-  {
-    String line = driveClient.readStringUntil('\n');
-    int indexOfColon = line.indexOf(':');
-    if (indexOfColon > 0)
-    {
-      String key = line.substring(0, indexOfColon);
-      if (key == "Location")
-      {
-        String value = line.substring(indexOfColon+1, line.length()-1);
-        value.trim();
-        //value = value.substring(36);
-        Serial.println(value);
-
-        if (!driveUserContentClient.connected())
-        {
-          while (!driveUserContentClient.connect("script.googleusercontent.com", drivePort))
-          {
-            Serial.println("User content connection failed");
-          }
-          Serial.println("User content client connected");
-        }
-
-        driveUserContentClient.print(String("GET ") + value + httpString);
-        Serial.println("New get send");
-        while(driveUserContentClient.connected())
-        {
-          String line = driveUserContentClient.readStringUntil('\n');
-          Serial.println(line);
-        }
-
-        Serial.println("Nothign more");
-        
-      }
-    }
-    //Serial.println(line);
-  }
-  Serial.println("All read");*/
-}
-
 void setup()
 {
   //Serial connection for debugging purposes
@@ -797,12 +753,5 @@ void loop()
       lastDriveLog_ms = millis();
     }
   }
-
-  //gameLogic();
-
-  //clearReceivedEvents();
-  //sendAllEvents();
-  //clearOutgoingEvents();
-  //receiveAllEvents();
   
 }
