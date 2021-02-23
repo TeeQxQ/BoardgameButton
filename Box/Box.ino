@@ -35,7 +35,13 @@ const String GAS_ID = "AKfycbzn_JvVTjFdTwfLjchA6kIjdkF8AiGZ-ODYY8G_f6nFaeMyzuP9t
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: close\r\n\r\n";
 //Buffer to store data to be sent to drive
-unsigned long driveConnectionTimeout = 5000;
+const int maxNofBufferedTurns = 25;
+bool newLogEntriesAvailable = false;
+const unsigned long driveLogInterval_ms = 30000;
+unsigned long lastDriveLog_ms = 0;
+int nofBufferedLogEntries = 0;
+unsigned long turnBuffer[maxNofBufferedTurns][nofColors] = { 0 };
+const unsigned long driveConnectionTimeout_ms = 5000;
 
 
 //const int nofKnownWifis = 3;
@@ -491,7 +497,40 @@ void OnWiFiEvent(WiFiEvent_t event)
 
 //--------------------Google Drive connection--------------------
 
-void logToDrive(unsigned long turnLengths_s[5])
+void addLogEntry(unsigned long turnLengths_s[nofColors])
+{
+  newLogEntriesAvailable = true;
+
+  if (nofBufferedLogEntries >= maxNofBufferedTurns)
+  {
+    Serial.println("Log buffer full!");
+    return;
+  }
+
+  for (size_t i = 0; i < nofColors; ++i)
+  {
+    turnBuffer[nofBufferedLogEntries][i] = turnLengths_s[i];
+  }
+  
+  ++nofBufferedLogEntries;
+}
+
+void clearLogBuffer()
+{
+  newLogEntriesAvailable = false;
+
+  for (size_t i = 0; i < maxNofBufferedTurns; ++i)
+  {
+    for (size_t j = 0; j < nofColors; ++j)
+    {
+      turnBuffer[i][j] = 0;
+    }
+  }
+
+  Serial.println("Log buffer cleared");
+}
+
+void logToDrive()
 {
   //Check if drive connection was left open, this should not happen
   if (driveClient.connected())
@@ -504,10 +543,10 @@ void logToDrive(unsigned long turnLengths_s[5])
   while(!driveClient.connect(driveHost, drivePort))
   {
     //Serial.println("No connection to google Drive...");
-    if (millis() - connectionStartTime > driveConnectionTimeout)
+    if (millis() - connectionStartTime > driveConnectionTimeout_ms)
     {
       Serial.print("No connection to the Google Drive within timeout (");
-      Serial.print(driveConnectionTimeout);
+      Serial.print(driveConnectionTimeout_ms);
       Serial.println("ms)");
       return;
     }
@@ -516,15 +555,16 @@ void logToDrive(unsigned long turnLengths_s[5])
 
   //Construct new data entry
   String colorTimes ="";
-  colorTimes += "green="  + String(turnLengths_s[static_cast<int>(GREEN)]);
-  colorTimes += "&blue=" + String(turnLengths_s[static_cast<int>(BLUE)]);
-  colorTimes += "&red=" + String(turnLengths_s[static_cast<int>(RED)]);
-  colorTimes += "&white=" + String(turnLengths_s[static_cast<int>(WHITE)]);
-  colorTimes += "&yellow=" + String(turnLengths_s[static_cast<int>(YELLOW)]);
+  colorTimes += "entries=1";
+  colorTimes += "&green=99&green=88"; //  + String(turnLengths_s[static_cast<int>(GREEN)]);
+  colorTimes += "&blue=6"; // + String(turnLengths_s[static_cast<int>(BLUE)]);
+  colorTimes += "&red=8"; // + String(turnLengths_s[static_cast<int>(RED)]);
+  colorTimes += "&white=8"; // + String(turnLengths_s[static_cast<int>(WHITE)]);
+  colorTimes += "&yellow=3"; // + String(turnLengths_s[static_cast<int>(YELLOW)]);
 
   //Log new entry to the Drive
+  Serial.println("Trying to log new data...");
   driveClient.print(String("GET ") + url + colorTimes + httpString);
-  Serial.println("New data logged to the Drive");
 
   //Read response headers
   String userContentUrl = "";
@@ -553,6 +593,9 @@ void logToDrive(unsigned long turnLengths_s[5])
   if(userContentUrl == "")
   {
     Serial.println("Failed to parse address for the relocated response");
+    Serial.println("Logging failed");
+    //Close connection to Google Drive as it is already open
+    driveClient.stop();
     return;
   }
 
@@ -568,11 +611,14 @@ void logToDrive(unsigned long turnLengths_s[5])
   connectionStartTime = millis();
   while (!driveUserContentClient.connect(driveUserContentHost, drivePort))
   {
-    if (millis() - connectionStartTime > driveConnectionTimeout)
+    if (millis() - connectionStartTime > driveConnectionTimeout_ms)
     {
       Serial.print("No connection to the Google Drive user content within timeout (");
-      Serial.print(driveConnectionTimeout);
+      Serial.print(driveConnectionTimeout_ms);
       Serial.println("ms)");
+      Serial.println("Logging failed");
+      //Close connection to Google Drive as it is already open
+      driveClient.stop();
       return;
     }
   }
@@ -604,6 +650,7 @@ void logToDrive(unsigned long turnLengths_s[5])
   else
   {
     Serial.println("Logging OK");
+    clearLogBuffer();
   }
   
   driveUserContentClient.stop();
@@ -618,7 +665,7 @@ void logToDrive(unsigned long turnLengths_s[5])
 void sendToDrive (unsigned long turnLengths_s[5])
 {
 
-  logToDrive(turnLengths_s);
+  //logToDrive(turnLengths_s);
 
   /*
   //Reconnect if connection lost
@@ -700,7 +747,10 @@ void setup()
   Serial.println("Game server started");
 
   //Initialize game
-  game.init(sendToDrive);
+  game.init(addLogEntry);
+
+  //Prepare buffer for storing drive log entries
+  clearLogBuffer();
 
   //Initialize player list
   //initializePlayers();
@@ -737,6 +787,15 @@ void loop()
     clearReceivedEvents();
     sendAllEvents();
     clearOutgoingEvents();
+  }
+
+  if (newLogEntriesAvailable)
+  {
+    if (millis() - lastDriveLog_ms > driveLogInterval_ms)
+    {
+      logToDrive();
+      lastDriveLog_ms = millis();
+    }
   }
 
   //gameLogic();
