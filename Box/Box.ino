@@ -17,8 +17,8 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "Kalat_ja_Rapu_2G"; //"PikkuPingviini"; //"Kalat_ja_Rapu_2G";
-const char* network_password = "rutaQlli"; //"Pinquliini"; //"rutaQlli";
+const char* network_ssid = "PikkuPingviini"; //"Kalat_ja_Rapu_2G";
+const char* network_password = "Pinquliini"; //"rutaQlli";
 
 //Server related parameters:
 const int WIFI_PORT = 80;
