@@ -17,8 +17,8 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "PikkuPingviini"; //"Kalat_ja_Rapu_2G";
-const char* network_password = "Pinquliini"; //"rutaQlli";
+const char* network_ssid = "TeeQNote9"; //"Kalat_ja_Rapu_2G";
+const char* network_password = "rutaQlli";
 
 //Server related parameters:
 const int WIFI_PORT = 80;
@@ -31,7 +31,7 @@ WiFiClientSecure driveUserContentClient;
 const char* driveHost = "script.google.com";
 const char* driveUserContentHost = "script.googleusercontent.com";
 const int drivePort = 443;
-const String GAS_ID = "AKfycbzn_JvVTjFdTwfLjchA6kIjdkF8AiGZ-ODYY8G_f6nFaeMyzuP9torUzQ";
+const String GAS_ID = "AKfycbw9DkRoh2GMcvjnXWRt7bGi3B2N0f8SM_oJ3yMq-2adyIONR6BwQwW9juaiNz-1YP1gsQ";
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: close\r\n\r\n";
 //Buffer to store data to be sent to drive
@@ -565,7 +565,7 @@ void logToDrive()
 
   //Construct new data entry
   String colorTimes ="";
-  colorTimes += "entries=" + String(nofBufferedLogEntries);
+  colorTimes += "method=log&entries=" + String(nofBufferedLogEntries);
   for (size_t i = 0; i < nofBufferedLogEntries; ++i)
   {
     colorTimes += "&green=" + String(turnBuffer[i][static_cast<int>(GREEN)]);
@@ -574,6 +574,8 @@ void logToDrive()
     colorTimes += "&white=" + String(turnBuffer[i][static_cast<int>(WHITE)]);
     colorTimes += "&yellow=" + String(turnBuffer[i][static_cast<int>(YELLOW)]);
   }
+
+  //String colorTimes = "method=get&sheet=Settings";
 
   /*
   colorTimes += "&green=99&green=88"; //  + String(turnLengths_s[static_cast<int>(GREEN)]);
