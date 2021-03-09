@@ -119,11 +119,11 @@ void Game::fetchGameSettings()
 {
   //TODO
 
-  mPredictablePlayerOrder = true;  
-  mPassOver = false;
-  mChangePlayerOrder = true;
-  mChangeOrderByOneStep = false;
-  mOnlyOneTurnPerPhase = true;
+  //mPredictablePlayerOrder = true;  
+  //mPassOver = false;
+  //mChangePlayerOrder = true;
+  //mChangeOrderByOneStep = false;
+  //mOnlyOneTurnPerPhase = true;
   mTurnsPerRound = UNLIMITED;               //Number of turns in a single round (0 - UNLIMITED)
   mRoundOverWhenPassed = true;     //Round ends only after passing
 }
