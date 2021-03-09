@@ -8,6 +8,7 @@
 
 class Game
 {
+  #define UNLIMITED 4294967295;
   typedef void(*dbFunc_t)(unsigned long[5]);
   
   public:
@@ -74,6 +75,7 @@ class Game
     bool mChangeOrderByOneStep;
     bool mOnlyOneTurnPerPhase;
     unsigned int mTurnsPerRound;
+    bool mRoundOverWhenPassed;
 
     //Definition for unlimited number of turns per player
     static const unsigned int unlimitedTurns = 9999;

@@ -124,7 +124,8 @@ void Game::fetchGameSettings()
   mChangePlayerOrder = true;
   mChangeOrderByOneStep = false;
   mOnlyOneTurnPerPhase = true;
-  mTurnsPerRound = 1;
+  mTurnsPerRound = UNLIMITED;               //Number of turns in a single round (0 - UNLIMITED)
+  mRoundOverWhenPassed = true;     //Round ends only after passing
 }
 
 Game::state_t Game::currentGameState()
@@ -153,14 +154,10 @@ const Game::Action Game::playOrderSelection(const Action action)
 
 const Game::Action Game::playTurns(const Action action)
 {
-  if (action.type == BTN_SHORT)
+  if (action.type == BTN_SHORT ||
+      action.type == BTN_LONG)
   {
     return playSingleTurn(action);
-  }
-
-  if (action.type == BTN_LONG)
-  {
-    //TODO äppäppää
   }
   
   return Action(UNDEFINED, UNKNOWN);
@@ -262,7 +259,21 @@ void Game::nextPlayer()
   player.addTurnLength(currentTime_ms - mTurnStartTime_ms);
   mTurnStartTime_ms = currentTime_ms;
 
-  mIndexOfPlayerInTurn = ++mIndexOfPlayerInTurn % mJoinedPlayers;
+  if (!allPassed())
+  {
+    for (unsigned int i = 0; i < mJoinedPlayers; i++)
+    {
+      mIndexOfPlayerInTurn = ++mIndexOfPlayerInTurn % mJoinedPlayers;
+      if(!mPlayers[nextInOrder()].passed())
+      {
+        break;
+      }
+    }
+  }
+  else
+  {
+    mIndexOfPlayerInTurn = 0;
+  }
 }
 
 const Game::Action Game::playSingleTurn(const Action action)
@@ -275,16 +286,20 @@ const Game::Action Game::playSingleTurn(const Action action)
     return Action(UNDEFINED, UNKNOWN);
   }
   
-  if(player.isPlaying() && !player.turnDone())
+  if(player.isPlaying() && !player.passed())
   {
     unsigned int currentTurnCount = player.turnCount();
     player.turnCount(++currentTurnCount);
     
-    if (player.turnCount() >= mTurnsPerRound)
+    if (player.turnCount() >= mTurnsPerRound ||
+        (mRoundOverWhenPassed && action.type == BTN_LONG))
     {
-      player.turnDone(true);
-      nextPlayer();
       player.passed(true);
+      nextPlayer();
+    }
+    else if (mRoundOverWhenPassed && action.type == BTN_SHORT)
+    {
+      nextPlayer();
     }
   }
   
