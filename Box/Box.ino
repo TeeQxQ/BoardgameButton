@@ -1,5 +1,6 @@
 #include "ArduinoJson.h"
 #include "colors.h"
+#include "common.h"
 #include "game.h"
 #include "events.h"
 #include "messages.h"
@@ -35,12 +36,12 @@ const String GAS_ID = "AKfycbw9DkRoh2GMcvjnXWRt7bGi3B2N0f8SM_oJ3yMq-2adyIONR6BwQ
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: close\r\n\r\n";
 //Buffer to store data to be sent to drive
-const int maxNofBufferedTurns = 25;
+const int maxNofBufferedTurns = 100;
 bool newLogEntriesAvailable = false;
 const unsigned long driveLogInterval_ms = 30000;
 unsigned long lastDriveLog_ms = 0;
 int nofBufferedLogEntries = 0;
-unsigned long turnBuffer[maxNofBufferedTurns][nofColors] = { 0 };
+unsigned long turnBuffer[maxNofCachedTurns][nofColors] = { 0 };
 const unsigned long driveConnectionTimeout_ms = 5000;
 
 

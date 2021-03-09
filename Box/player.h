@@ -2,8 +2,7 @@
 #define Player_h
 
 #include "colors.h"
-
-
+#include "common.h"
 
 class Player
 {
@@ -33,8 +32,14 @@ class Player
     unsigned long turnLength_s();
     void addTurnLength(unsigned long length_ms);
     void resetTurnLength();
+    void addTurn(unsigned long length_ms);
+    unsigned long getTurnLength_s(unsigned int atIndex);
+    void resetTurns();
+    unsigned int getNofCachedTurns();
 
   private:
+    //static const unsigned int mMaxNofCachedTurns = 100;
+  
     Color mColor;
     bool mIsPlaying;
     bool mPassed;
@@ -42,7 +47,9 @@ class Player
     unsigned int mTurnCount;  //Cumulative count of the turns done during this phase
     bool mTurnDone;
     unsigned int mTurnIndex;
-    unsigned long mTurnLength_ms; 
+    unsigned long mTurnLength_ms;
+    unsigned long mCachedTurns[maxNofCachedTurns];
+    unsigned int mNofCachedTurns;
 
 };
 

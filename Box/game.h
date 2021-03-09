@@ -3,13 +3,13 @@
 
 #include <Arduino.h>
 #include "colors.h"
+#include "common.h"
 #include "events.h"
 #include "player.h"
 
 class Game
 {
-  #define UNLIMITED 4294967295;
-  typedef void(*dbFunc_t)(unsigned long[5]);
+  typedef void(*dbFunc_t)(unsigned long[nofColors]);
   
   public:
 
@@ -29,7 +29,7 @@ class Game
   
     Game();
     void init();
-    void init(dbFunc_t saveToDriveFunc);  
+    void init(dbFunc_t saveToDriveFunc);
     void reset();
     void save();
     void load();
@@ -62,7 +62,7 @@ class Game
     //E.g. first 0, then 1 etc.
     unsigned int mIndexOfPlayerInTurn;
 
-    //Start of a turn
+    //Start time of a turn
     unsigned long mTurnStartTime_ms;
 
     //Pointer to a function which stores results to the drive
@@ -103,6 +103,9 @@ class Game
     void nextPlayer();
 
     bool allPassed();
+
+    //As players can pass different times, get the max number of turns in this round
+    unsigned int mostCachedTurns();
 
     
 };

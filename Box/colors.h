@@ -5,7 +5,7 @@
 
 //This must match with the enum definitions
 //UNDEFINED not counted
-static const int nofColors = 5;
+//static const int nofColors = 5;
 
 enum Color {
   RED = 0,

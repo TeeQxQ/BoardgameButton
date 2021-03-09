@@ -21,7 +21,8 @@ void Player::reset()
   mTurnDone = false;
   mTurnCount = 0;
   mTurnIndex = undefinedTurnIndex;
-  resetTurnLength(); 
+  resetTurnLength();
+  resetTurns();
 }
 
 void Player::setColor(Color newColor)
@@ -128,4 +129,33 @@ void Player::addTurnLength(unsigned long length_ms)
 void Player::resetTurnLength()
 {
   mTurnLength_ms = 0;
+}
+
+void Player::addTurn(unsigned long length_ms)
+{
+  if (mNofCachedTurns < maxNofCachedTurns)
+  {
+    mCachedTurns[mNofCachedTurns] = length_ms;
+    ++mNofCachedTurns;
+  }
+}
+
+unsigned long Player::getTurnLength_s(unsigned int atIndex)
+{
+  if (atIndex < mNofCachedTurns)
+  {
+    return (mCachedTurns[atIndex] > 0) ? mCachedTurns[atIndex] / 1000 + 1 : 0;
+  }
+
+  return 0;
+}
+
+void Player::resetTurns()
+{
+  mNofCachedTurns = 0;
+}
+
+unsigned int Player::getNofCachedTurns()
+{
+  return mNofCachedTurns;
 }

@@ -257,6 +257,7 @@ void Game::nextPlayer()
   unsigned long currentTime_ms = millis();
   Player& player = mPlayers[nextInOrder()];
   player.addTurnLength(currentTime_ms - mTurnStartTime_ms);
+  player.addTurn(currentTime_ms - mTurnStartTime_ms);
   mTurnStartTime_ms = currentTime_ms;
 
   if (!allPassed())
@@ -341,21 +342,35 @@ void Game::nextState()
 
 const Game::Action Game::finishRound()
 {
-  unsigned long turnLengths_ms[mMaxNofPlayers];
   unsigned long turnLengths_s[mMaxNofPlayers];
-  for(unsigned int i = 0; i < mMaxNofPlayers; ++i)
-  {
-    turnLengths_ms[i] = mPlayers[i].turnLength();
-    turnLengths_s[i] = mPlayers[i].turnLength_s();
-  }
-
+  
   //Save turn lengths to the db (Google drive)
   if (saveToDb)
   {
-    //saveToDb(turnLengths_ms);
-    saveToDb(turnLengths_s);
+    for (unsigned int turn = 0; turn < mostCachedTurns(); ++turn)
+    {
+      for(unsigned int i = 0; i < mMaxNofPlayers; ++i)
+      {
+        //return 0 if player didn't play turn number "turn"
+        turnLengths_s[i] = mPlayers[i].getTurnLength_s(turn);
+      }
+      saveToDb(turnLengths_s);
+    }
   }
   
   this->reset();
   return Action(UNDEFINED, BLINK_ALL);
+}
+
+unsigned int Game::mostCachedTurns()
+{
+  unsigned int maxTurns = 0;
+  for(unsigned int i = 0; i < mMaxNofPlayers; ++i)
+  {
+    if (mPlayers[i].getNofCachedTurns() > maxTurns)
+    {
+      maxTurns = mPlayers[i].getNofCachedTurns();
+    }
+  }
+  return maxTurns;
 }
