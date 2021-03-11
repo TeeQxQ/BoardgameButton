@@ -64,6 +64,8 @@ class Game
 
     //Start time of a turn
     unsigned long mTurnStartTime_ms;
+    //Start time of the turn selection
+    unsigned long mOrderSelectionStartTime_ms;
 
     //Pointer to a function which stores results to the drive
     dbFunc_t saveToDb;

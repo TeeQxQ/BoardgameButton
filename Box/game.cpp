@@ -56,6 +56,7 @@ void Game::reset()
   mNofTurnsSelected = 0;
   mIndexOfPlayerInTurn = 0;
   mState = ORDER_SELECTION;
+  //mOrderSelectionStartTime_ms = millis();
 }
 
 const Game::Action Game::addPlayer(Color color)

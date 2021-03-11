@@ -18,7 +18,7 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "Kalat_ja_Rapu_2G";
+const char* network_ssid = "TeeQNote9"; //"Kalat_ja_Rapu_2G";
 const char* network_password = "rutaQlli";
 
 //Server related parameters:
