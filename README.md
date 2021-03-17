@@ -6,6 +6,7 @@ Button for various board game purposes to indicate player actions
 ## Improvement ideas:
 * ~~Wifi network reconnection~~, try also optional networks if connection is lost
 * Don't require Drive connection, cache changes while waiting connection
+* Add id to turn entries, log may be succesfull even though receiving the answer failed
 * Store changes to SD card, flush when connection re-established
 * ~~Replace master button with box~~
 * ~~Add effects (more than blinking)~~
@@ -15,4 +16,5 @@ Button for various board game purposes to indicate player actions
 * General game settings implementation
 * Read game settings (e.g. game logic, turn length indicator...) via Google Drive
 * Add super long button press + effect
+* Sometimes long button press occurs (timers haven't been reseted?)
 
