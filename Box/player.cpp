@@ -140,6 +140,30 @@ void Player::addTurn(unsigned long length_ms)
   }
 }
 
+unsigned long Player::removeTurn()
+{
+  if (mNofCachedTurns > 0)
+  {
+    --mNofCachedTurns;
+    return mCachedTurns[mNofCachedTurns];
+  }
+
+  return 0;
+  
+}
+
+void Player::extendLatestTurn(unsigned long lengthToAdd_ms)
+{
+  if (mNofCachedTurns > 0)
+  {
+    mCachedTurns[mNofCachedTurns -1] += lengthToAdd_ms;
+  }
+  else
+  {
+    mCachedTurns[mNofCachedTurns] += lengthToAdd_ms;
+  }
+}
+
 unsigned long Player::getTurnLength_s(unsigned int atIndex)
 {
   if (atIndex < mNofCachedTurns)

@@ -13,7 +13,8 @@ enum Color {
   GREEN = 2,
   YELLOW = 3,
   WHITE = 4,
-  UNDEFINED = 5
+  ORDER_SELECTION = 5,
+  UNDEFINED = 6
 };
 
 /*

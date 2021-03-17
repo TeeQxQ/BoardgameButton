@@ -55,8 +55,10 @@ void Game::reset()
 
   mNofTurnsSelected = 0;
   mIndexOfPlayerInTurn = 0;
+  mIndexOfPlayerPreviouslyInTurn = 0;
   mState = ORDER_SELECTION;
-  //mOrderSelectionStartTime_ms = millis();
+  mOrderSelectionStartTime_ms = millis();
+  mOrderSelectionTime_ms = 0;
 }
 
 const Game::Action Game::addPlayer(Color color)
@@ -140,6 +142,7 @@ const Game::Action Game::playOrderSelection(const Action action)
   {
     if (action.type == BTN_SHORT)
     {
+      //selectOrder method will deSelect order if necessary
       return selectOrder(action);
     }
 
@@ -253,6 +256,19 @@ unsigned int Game::nextInOrder()
   return 0;
 }
 
+unsigned int Game::previousInOrder()
+{
+  for (unsigned int i = 0; i < mMaxNofPlayers; ++i)
+  {
+    if (mPlayers[i].turnIndex() == mIndexOfPlayerPreviouslyInTurn)
+    {
+      return i;
+    }
+  }
+
+  return 0;
+}
+
 void Game::nextPlayer()
 {
   unsigned long currentTime_ms = millis();
@@ -263,6 +279,7 @@ void Game::nextPlayer()
 
   if (!allPassed())
   {
+    mIndexOfPlayerPreviouslyInTurn = mIndexOfPlayerInTurn;
     for (unsigned int i = 0; i < mJoinedPlayers; i++)
     {
       mIndexOfPlayerInTurn = ++mIndexOfPlayerInTurn % mJoinedPlayers;
@@ -275,16 +292,28 @@ void Game::nextPlayer()
   else
   {
     mIndexOfPlayerInTurn = 0;
+    mIndexOfPlayerPreviouslyInTurn = 0;
   }
+}
+
+void Game::previousPlayer()
+{
+  mIndexOfPlayerInTurn = mIndexOfPlayerPreviouslyInTurn;
+  //Todo append turn length
 }
 
 const Game::Action Game::playSingleTurn(const Action action)
 {
   Player& player = mPlayers[static_cast<unsigned int>(action.color)];
 
-  //If someone not in turn pressed, return
+  //If someone not in turn pressed:
   if (player.turnIndex() != mIndexOfPlayerInTurn)
   {
+    if(action.type == BTN_LONG)
+    {
+      return continueLastTurn(action);
+    }
+    
     return Action(UNDEFINED, UNKNOWN);
   }
   
@@ -313,6 +342,38 @@ const Game::Action Game::playSingleTurn(const Action action)
   return Action(mPlayers[nextInOrder()].color(), ALL_OFF_EXCEPT_ONE);
 }
 
+const Game::Action Game::continueLastTurn(const Action action)
+{
+  Player& player = mPlayers[static_cast<unsigned int>(action.color)];
+
+  //If someone not previously in turn pressed, return
+  if (player.turnIndex() != mIndexOfPlayerPreviouslyInTurn)
+  {
+    return Action(UNDEFINED, UNKNOWN);
+  }
+
+  if(player.isPlaying())
+  {
+    if (player.passed())
+    {
+      player.passed(false);
+    }
+
+    unsigned int currentTurnCount = player.turnCount();
+    player.turnCount(--currentTurnCount);
+
+    //Remove recently added turn and restore turn length
+    unsigned long turnLengthToContinue_ms = player.removeTurn();
+    mTurnStartTime_ms = millis() - turnLengthToContinue_ms;
+
+    previousPlayer();
+
+    return Action(mPlayers[nextInOrder()].color(), ALL_OFF_EXCEPT_ONE);
+  }
+  
+  return Action(UNDEFINED, UNKNOWN);
+}
+
 bool Game::allPassed()
 {
   for (unsigned int i = 0; i < mMaxNofPlayers; ++i)
@@ -332,6 +393,10 @@ void Game::nextState()
   {
     case ORDER_SELECTION:
       mState = PLAY_TURNS;
+      Serial.println(mOrderSelectionStartTime_ms);
+      Serial.println(millis());
+      Serial.println(mOrderSelectionTime_ms);
+      mOrderSelectionTime_ms = millis() - mOrderSelectionStartTime_ms;
       mTurnStartTime_ms = millis();
       break;
     case PLAY_TURNS:
@@ -343,7 +408,7 @@ void Game::nextState()
 
 const Game::Action Game::finishRound()
 {
-  unsigned long turnLengths_s[mMaxNofPlayers];
+  unsigned long turnLengths_s[nofColors];
   
   //Save turn lengths to the db (Google drive)
   if (saveToDb)
@@ -355,6 +420,18 @@ const Game::Action Game::finishRound()
         //return 0 if player didn't play turn number "turn"
         turnLengths_s[i] = mPlayers[i].getTurnLength_s(turn);
       }
+
+      //Add turn selection time
+      if (turn == 0)
+      {
+        turnLengths_s[nofColors-1] = mOrderSelectionTime_ms / 1000 +1;
+        Serial.println("here");
+      }
+      else
+      {
+        turnLengths_s[nofColors-1] = 0;
+      }
+      Serial.println("Ready to store");
       saveToDb(turnLengths_s);
     }
   }

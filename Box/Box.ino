@@ -18,7 +18,7 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "TeeQNote9"; //"Kalat_ja_Rapu_2G";
+const char* network_ssid = /*"TeeQNote9";*/ "Kalat_ja_Rapu_2G";
 const char* network_password = "rutaQlli";
 
 //Server related parameters:
@@ -32,7 +32,7 @@ WiFiClientSecure driveUserContentClient;
 const char* driveHost = "script.google.com";
 const char* driveUserContentHost = "script.googleusercontent.com";
 const int drivePort = 443;
-const String GAS_ID = "AKfycbw9DkRoh2GMcvjnXWRt7bGi3B2N0f8SM_oJ3yMq-2adyIONR6BwQwW9juaiNz-1YP1gsQ";
+const String GAS_ID = "AKfycbwcthsO1y82bSPCrM5LslHhk3BHpONWRgSYJpoKnJ0p9JOuxpM7UcB4ygD54Qxn2R2PtQ";
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: close\r\n\r\n";
 //Buffer to store data to be sent to drive
@@ -79,6 +79,9 @@ String colorToString(Color c)
       break;
     case WHITE:
       s = "WHITE";
+      break;
+    case ORDER_SELECTION:
+      s = "ORDER_SELECTION";
       break;
     default:
       s = "UNDEFINED";
@@ -574,6 +577,7 @@ void logToDrive()
     colorTimes += "&red=" + String(turnBuffer[i][static_cast<int>(RED)]);
     colorTimes += "&white=" + String(turnBuffer[i][static_cast<int>(WHITE)]);
     colorTimes += "&yellow=" + String(turnBuffer[i][static_cast<int>(YELLOW)]);
+    colorTimes += "&order_selection=" + String(turnBuffer[i][static_cast<int>(ORDER_SELECTION)]);
   }
 
   //String colorTimes = "method=get&sheet=Settings";

@@ -61,21 +61,24 @@ class Game
     //Current player in turn (not the index in array)
     //E.g. first 0, then 1 etc.
     unsigned int mIndexOfPlayerInTurn;
+    //Previous player in turn (not the index in array)
+    unsigned int mIndexOfPlayerPreviouslyInTurn;
 
-    //Start time of a turn
+    //Start time of a single turn
     unsigned long mTurnStartTime_ms;
     //Start time of the turn selection
     unsigned long mOrderSelectionStartTime_ms;
+    unsigned long mOrderSelectionTime_ms;
 
     //Pointer to a function which stores results to the drive
     dbFunc_t saveToDb;
 
     //Settings
-    bool mPredictablePlayerOrder;  
-    bool mPassOver;
-    bool mChangePlayerOrder;
-    bool mChangeOrderByOneStep;
-    bool mOnlyOneTurnPerPhase;
+    //bool mPredictablePlayerOrder;  
+    //bool mPassOver;
+    //bool mChangePlayerOrder;
+    //bool mChangeOrderByOneStep;
+    //bool mOnlyOneTurnPerPhase;
     unsigned int mTurnsPerRound;
     bool mRoundOverWhenPassed;
 
@@ -94,19 +97,29 @@ class Game
     const Game::Action selectOrder(const Action action);
     const Game::Action deSelectOrder(const Action action);
     const Game::Action playSingleTurn(const Action action);
+    const Game::Action continueLastTurn(const Action action);
     const Game::Action finishRound();
 
     //Because of the order deselect/select, turn indexes may include gaps
     //This method removes them
     void cleanOrder();
-    //Get index of the next player in turn
+    
+    //Get index of the next (current) player in turn
     unsigned int nextInOrder();
+
+    //Get index of the last player in turn
+    unsigned int previousInOrder();
+    
     //Pass turn to the next player
     void nextPlayer();
 
+    //Pass turn to the previous player
+    void previousPlayer();
+
+    //Indicates if all players have passed their turn
     bool allPassed();
 
-    //As players can pass different times, get the max number of turns in this round
+    //As players can pass different times, get the max number of turns a player has done in this round
     unsigned int mostCachedTurns();
 
     
