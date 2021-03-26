@@ -18,7 +18,7 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "TeeQNote9"; //"Kalat_ja_Rapu_2G";
+const char* network_ssid = "Kalat_ja_Rapu_2G"; //"TeeQNote9"; //"Kalat_ja_Rapu_2G";
 const char* network_password = "rutaQlli";
 
 //Server related parameters:
@@ -32,7 +32,7 @@ WiFiClientSecure driveUserContentClient;
 const char* driveHost = "script.google.com";
 const char* driveUserContentHost = "script.googleusercontent.com";
 const int drivePort = 443;
-const String GAS_ID = "AKfycbwcthsO1y82bSPCrM5LslHhk3BHpONWRgSYJpoKnJ0p9JOuxpM7UcB4ygD54Qxn2R2PtQ";
+const String GAS_ID = "AKfycbxU8CfT5WtIRWQP-HUGcN6hr23wonPNVmX72P4xWPTfKwv0XagR_NK163aJSkSRWLFwMQ";
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: close\r\n\r\n";
 //Buffer to store data to be sent to drive
@@ -542,6 +542,122 @@ void clearLogBuffer()
   Serial.println("Log buffer cleared");
 }
 
+void getSettings()
+{
+  Serial.println("Start fetching settings from Google Drive...");
+
+  //Check if drive connection was left open, this should not happen
+  if (driveClient.connected())
+  {
+    Serial.println("Drive connection was left open!");
+  }
+
+  //Connect to the Drive
+  unsigned long connectionStartTime = millis();
+  while(!driveClient.connect(driveHost, drivePort))
+  {
+    //Serial.println("No connection to google Drive...");
+    if (millis() - connectionStartTime > driveConnectionTimeout_ms)
+    {
+      Serial.print("No connection to the Google Drive within timeout (");
+      Serial.print(driveConnectionTimeout_ms);
+      Serial.println("ms)");
+      return;
+    }
+  }
+  
+  Serial.println("Google Drive connection successfull");
+
+  Serial.println("Trying to get settings data...");
+  String request = "method=get&sheet=gameSettings";
+  driveClient.print(String("GET ") + url + request + httpString);
+
+  //Read response headers
+  String userContentUrl = "";
+  while(driveClient.connected())
+  {
+    String line = driveClient.readStringUntil('\n');
+    //Serial.println(line);
+    if (line == "\r")
+    {
+      Serial.println("Info: Headers received");
+      break;
+    }
+
+    int indexOfColon = line.indexOf(':');
+    if (indexOfColon > 0)
+    {
+      String key = line.substring(0, indexOfColon);
+      if (key == "Location")
+      {
+        userContentUrl = line.substring(indexOfColon+1, line.length()-1);
+        userContentUrl.trim();
+      }
+    }
+  }
+
+  if(userContentUrl == "")
+  {
+    Serial.println("Failed to parse address for the relocated response");
+    Serial.println("Failed to fetch settings");
+    //Close connection to Google Drive as it is already open
+    driveClient.stop();
+    return;
+  }
+
+  //Read response content, which in this case is relocated in userContentUrl
+  Serial.print("Address for the relocated response message: ");
+  Serial.println(userContentUrl);
+
+  if (driveUserContentClient.connected())
+  {
+    Serial.println("Drive user content connection was left open!");
+  }
+
+  connectionStartTime = millis();
+  while (!driveUserContentClient.connect(driveUserContentHost, drivePort))
+  {
+    if (millis() - connectionStartTime > driveConnectionTimeout_ms)
+    {
+      Serial.print("No connection to the Google Drive user content within timeout (");
+      Serial.print(driveConnectionTimeout_ms);
+      Serial.println("ms)");
+      Serial.println("Failed to get settings");
+      //Close connection to Google Drive as it is already open
+      driveClient.stop();
+      return;
+    }
+  }
+  Serial.println("Google Drive User Content connection succesfull");
+
+  //Get response
+  driveUserContentClient.print(String("GET ") + userContentUrl + httpString);
+
+  while(driveUserContentClient.connected())
+  {
+    String line = driveUserContentClient.readStringUntil('\n');
+    //Serial.println(line);
+    if (line == "\r")
+    {
+      Serial.println("Info: Headers received");
+      break;
+    }
+  }
+
+  String dataLength = driveUserContentClient.readStringUntil('\n');
+  String data = driveUserContentClient.readStringUntil('\n');
+
+  Serial.println(data);
+
+  driveUserContentClient.stop();
+  driveClient.stop();
+  
+  //Close everything gracefully
+  Serial.println("Google Drive user content disconnected gracefully");
+  Serial.println("Google Drive disconnected gracefully");
+  
+}
+
 void logToDrive()
 {
   Serial.println("Start logging to Google Drive...");
@@ -722,6 +838,7 @@ void setup()
   //unsigned long arr[5] = {1, 2, 3, 4, 5};
   //sendToDrive(arr);
   //logToDrive();
+  getSettings();
 }
  
 void loop()

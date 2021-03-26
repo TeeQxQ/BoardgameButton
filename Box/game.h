@@ -26,6 +26,12 @@ class Game
         this->data = data;
       }
     } Action;
+
+    typedef struct Settings
+    {
+      unsigned int mTurnsPerRound;
+      bool mRoundOverWhenPassed;
+    } Settings;
   
     Game();
     void init();
@@ -85,6 +91,12 @@ class Game
     //Definition for unlimited number of turns per player
     static const unsigned int unlimitedTurns = 9999;
 
+    //Settings for the current game
+    Game::Settings gameSettings;
+
+    //Initialize game settings
+    void initializeSettings();
+    
     //Get settings from drive or SD card
     void fetchGameSettings();
 

@@ -45,6 +45,7 @@ const Game::Action Game::play(const Action action)
 
 void Game::reset()
 {
+  initializeSettings();
   fetchGameSettings();
   
   //reset players
@@ -118,6 +119,12 @@ const Game::Action Game::rejoinPlayer(Color color)
   return Action(UNDEFINED, UNKNOWN);
 }
 
+void Game::initializeSettings()
+{
+  gameSettings.mTurnsPerRound = 1;
+  gameSettings.mRoundOverWhenPassed = false;
+}
+
 void Game::fetchGameSettings()
 {
   //TODO
@@ -127,8 +134,8 @@ void Game::fetchGameSettings()
   //mChangePlayerOrder = true;
   //mChangeOrderByOneStep = false;
   //mOnlyOneTurnPerPhase = true;
-  mTurnsPerRound = UNLIMITED;               //Number of turns in a single round (0 - UNLIMITED)
-  mRoundOverWhenPassed = true;     //Round ends only after passing
+  mTurnsPerRound = 1; //UNLIMITED;               //Number of turns in a single round (0 - UNLIMITED)
+  mRoundOverWhenPassed = false; //true;     //Round ends only after passing
 }
 
 Game::state_t Game::currentGameState()
