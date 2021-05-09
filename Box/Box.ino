@@ -18,7 +18,7 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "TeeQNote9"; //"Kalat_ja_Rapu_2G"; //"TeeQNote9"; //"Kalat_ja_Rapu_2G";
+const char* network_ssid = "Kalat_ja_Rapu_2G"; //"TeeQNote9"; //"Kalat_ja_Rapu_2G";
 const char* network_password = "rutaQlli";
 
 //Server related parameters:
@@ -860,8 +860,12 @@ void loop()
       const Event e = getEvent(static_cast<Color>(i));
       if (e.type != UNKNOWN)
       {
-        const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
-        setEvent(returnAction.color, returnAction.type);
+        Serial.print("e: ");
+        Serial.print(e.type);
+        Serial.print(" data: ");
+        Serial.println(e.data);
+        //const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
+        //setEvent(returnAction.color, returnAction.type);
       }
     }
     clearReceivedEvents();

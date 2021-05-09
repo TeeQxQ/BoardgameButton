@@ -1,5 +1,7 @@
 #include "ArduinoJson.h"
 
+#define ARDUINOJSON_USE_LONG_LONG 1
+
 /* This is the definition (as JSON) for the message.
  *  If this definition is changed later, the following tool
  *  can be used to calculate new value for msgCapacity
@@ -8,7 +10,8 @@
  *  {
  *   "color": 0,
  *   "event": 2,
- *   "data": 100
+ *   "data": 100,
+ *   "ts": 12345
  *  }
  *  
  */

@@ -3,19 +3,20 @@
 
 enum EventType {
   UNKNOWN = 0,
-  LED,
-  LED_ON,
-  LED_OFF,
-  BLINK,
+  LED = 1,
+  LED_ON = 2,
+  LED_OFF = 3,
+  BLINK = 4,
   BLINK_ON = 5,
   BLINK_OFF = 6,
-  BTN_SHORT,
-  BTN_LONG,
-  COLOR,
-  ADDED,
-  REMOVED,
-  ALL_OFF_EXCEPT_ONE,
-  BLINK_ALL
+  BTN = 7, 
+  BTN_SHORT = 8,
+  BTN_LONG = 9,
+  COLOR = 10,
+  ADDED = 11,
+  REMOVED = 12,
+  ALL_OFF_EXCEPT_ONE = 13,
+  BLINK_ALL = 14
 };
 
 typedef struct Event
