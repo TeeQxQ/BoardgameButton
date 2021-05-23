@@ -8,14 +8,15 @@ enum EventType {
   BLINK = 4,
   BLINK_ON = 5,
   BLINK_OFF = 6,
-  BTN = 7, 
-  BTN_SHORT = 8,
-  BTN_LONG = 9,
-  COLOR = 10,
-  ADDED = 11,
-  REMOVED = 12,
-  ALL_OFF_EXCEPT_ONE = 13,
-  BLINK_ALL = 14
+  BTN = 7,
+  BTN_DOUBLE = 8,
+  BTN_SHORT = 9,
+  BTN_LONG = 10,
+  COLOR = 11,
+  ADDED = 12,
+  REMOVED = 13,
+  ALL_OFF_EXCEPT_ONE = 14,
+  BLINK_ALL = 15
 };
 
 typedef struct Event
@@ -64,6 +65,12 @@ String eventToString(EventType e)
       break;
     case BLINK_OFF:
       s = "BLINK_OFF";
+      break;
+    case BTN:
+      s = "BTN";
+      break;
+    case BTN_DOUBLE:
+      s = "BTN_DOUBLE";
       break;
     case BTN_SHORT:
       s = "BTN_SHORT";

@@ -1,6 +1,8 @@
+#include "button.h"
 #include "colors.h"
 #include "ESP8266WiFi.h"
 #include "events.h"
+#include "fifo.h"
 #include "messages.h"
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
@@ -45,16 +47,11 @@ volatile unsigned long btnPressedTime_ms = 0;
 volatile unsigned long btnReleasedTime_ms = 0;
 const unsigned long btnDebounceThreshold_ms = 10;
 const byte btnBufferSize = 10;
-volatile int btnBuffer[btnBufferSize];
+volatile int btnBuffer[btnBufferSize];              //bfr to store btn press lengths
+volatile unsigned long btnTsBuffer[btnBufferSize];  //bfr to store btn press timestamps
 volatile byte btnPressedCount = 0; 
-
-
-volatile byte btnState = LOW; //Released == LOW
-const int buttonBufferSize = 10;
-volatile int btnFifo[10];
-volatile int storedPresses = 0;
-volatile bool pressed = false;
-volatile bool change = false;
+const unsigned long btnDoubleClickDelayMax_ms = 500; //Max time to wait second click
+Fifo<BtnClick> testBuffer(10);
 
 //Communication related:
 //Buffer events to be send/received
@@ -316,7 +313,19 @@ void handleEvent(const Event e)
 ISR_PREFIX void handleInterrupt()
 {
   const unsigned long t_ms = millis();
-  if (t_ms - btnPressedTime_ms >= btnDebounceThreshold_ms &&
+  if (digitalRead(BTN_PIN))
+  {
+    btnPressedTime_ms = t_ms;
+  }
+  else
+  {
+    btnReleasedTime_ms = t_ms;
+    btnPressedCount++;
+  }
+
+
+    
+  /*if (t_ms - btnPressedTime_ms >= btnDebounceThreshold_ms &&
       t_ms - btnReleasedTime_ms >= btnDebounceThreshold_ms)
   {
     if (digitalRead(BTN_PIN))
@@ -326,9 +335,16 @@ ISR_PREFIX void handleInterrupt()
     else
     {
       btnReleasedTime_ms = t_ms;
-      btnBuffer[btnPressedCount++] = btnReleasedTime_ms - btnPressedTime_ms;
+
+      btnPressedCount++;
+      //Make sure counter stays within limits
+      if (btnPressedCount <= btnBufferSize)
+      {
+         btnTsBuffer[btnPressedCount - 1] = btnPressedTime_ms;
+         btnBuffer[btnPressedCount - 1] = btnReleasedTime_ms - btnPressedTime_ms;
+      }
     }
-  }
+  }*/
 }
 
 //--------------------Buttons--------------------
@@ -343,69 +359,29 @@ void handleButtonPress()
 
   if (btnPressedCount > 0)
   {
-    //Serial.println(btnBuffer[--btnPressedCount]);
-    btnEvent.type = BTN;
-    btnEvent.data = btnBuffer[--btnPressedCount];
-    btnEvent.ts = millis();
+    //
   }
 
-  /*if (change && pressed)
+  /*if (btnPressedCount > 0 && 
+      millis() - max(btnPressedTime_ms, btnReleasedTime_ms) >= btnDoubleClickDelayMax_ms)
   {
-    Serial.println("pressed");
-    change = false;
-  }
-  else if (change)
-  {
-    Serial.println("released");
-    change = false;
-  }*/
-  /*if (storedPresses > 0)
-  {
-    storedPresses--;
-    Serial.println(btnState);
-    //btnEvent.type = BTN;
-    //btnEvent.data = btnFifo[--storedPresses];
-    //btnEvent.ts = millis();
-  }*/
+    //double click
+    if (btnPressedCount == 2)
+    {
+      btnEvent.type = BTN_DOUBLE;
+      btnEvent.data = btnBuffer[0] + btnBuffer[1];
+    }
+    //single click
+    else
+    {
+      btnEvent.type = BTN;
+      btnEvent.data = btnBuffer[0];
+    }
+    btnEvent.ts = btnTsBuffer[0];
+    btnPressedCount = 0;
 
-  /*const byte btnBufferSize = 10;
-volatile int btnBuffer[btnBufferSize];
-volatile byte btnPressedCount = 0;*/
-
-  /*if (btnChangedCounter > 0)
-  {
-      unsigned long currentTime_ms = millis();
-      if (currentTime_ms - btnChangedTime_ms > btnChangeRecordTime_ms)
-      {
-        //Serial.println(btnChangedCounter);
-        if (btnChangedCounter >= thresholdForBtnRelease)
-        {
-          //Button was released
-          if (btnChangedTime_ms - btnPressedTime_ms >= btnLongPressThreshold_ms)
-          {
-            btnEvent.type = BTN_LONG;
-          }
-          else
-          {
-            btnEvent.type = BTN_SHORT;
-          }
-          btnEvent.data = static_cast<int>(btnChangedTime_ms - btnPressedTime_ms);
-        }
-        else
-        {
-          //Button was pressed
-          btnPressedTime_ms = btnChangedTime_ms;
-        }
-
-        //Changes handled, reset the counter
-        btnChangedCounter = 0;
-      }
-  }*/
-
-  if (btnEvent.type != UNKNOWN)
-  {
     setEvent(btnEvent.type, btnEvent.data, btnEvent.ts);
-  }
+  }*/
 }
 
 //--------------------Button color--------------------
