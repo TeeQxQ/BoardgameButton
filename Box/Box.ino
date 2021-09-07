@@ -247,6 +247,7 @@ Event receiveEvent(Color color)
   Event e;
   e.type = UNKNOWN;
   e.data = 0;
+  e.ts = 0;
 
   if (clients[static_cast<int>(color)] != NULL && 
       clients[static_cast<int>(color)]->available())
@@ -262,6 +263,7 @@ Event receiveEvent(Color color)
     //Construct an event from the message:
     e.type = msg::msg["event"];
     e.data = msg::msg["data"];
+    e.ts = msg::msg["ts"];
 
     Serial.print("Received event (");
     Serial.print(colorToString(color));
@@ -271,7 +273,7 @@ Event receiveEvent(Color color)
     eventToString(e, charArray);
     Serial.print(charArray);
 
-    if (e.type == BTN_SHORT || e.type == BTN_LONG)
+    if (e.type == BTN_SHORT || e.type == BTN_LONG || e.type == BTN)
     {
       Serial.print(" (");
       Serial.print(static_cast<int>(e.data));
@@ -312,6 +314,7 @@ void clearOutgoingEvents()
     Event *e = &outgoingEvents[static_cast<Color>(color)];
     e->type = UNKNOWN;
     e->data = 0;
+    e->ts = 0;
   }
   //Serial.println(outgoingEvents[static_cast<Color>(2)].type);
 }
@@ -325,6 +328,7 @@ void clearReceivedEvents()
     Event *e = &receivedEvents[static_cast<Color>(color)];
     e->type = UNKNOWN;
     e->data = 0;
+    e->ts = 0;
   }
   //Serial.println(receivedEvents[static_cast<Color>(2)].type);
 }
@@ -863,7 +867,9 @@ void loop()
         Serial.print("e: ");
         Serial.print(e.type);
         Serial.print(" data: ");
-        Serial.println(e.data);
+        Serial.print(e.data);
+        Serial.print(" ts: ");
+        Serial.println(e.ts);
         //const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
         //setEvent(returnAction.color, returnAction.type);
       }

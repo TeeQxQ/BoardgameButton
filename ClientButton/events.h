@@ -1,23 +1,45 @@
 //This file defines different IDs for different events
 
 enum EventType {
-  UNKNOWN,
-  LED,
-  LED_ON,
-  LED_OFF,
-  BLINK,
-  BLINK_ON,
-  BLINK_OFF,
-  BTN_SHORT,
-  BTN_LONG,
-  COLOR
+  UNKNOWN = 0,
+  LED = 1,
+  LED_ON = 2,
+  LED_OFF = 3,
+  BLINK = 4,
+  BLINK_ON = 5,
+  BLINK_OFF = 6,
+  BTN = 7,
+  BTN_DOUBLE = 8,
+  BTN_SHORT = 9,
+  BTN_LONG = 10,
+  COLOR = 11,
+  ADDED = 12,
+  REMOVED = 13,
+  ALL_OFF_EXCEPT_ONE = 14,
+  BLINK_ALL = 15
 };
 
 typedef struct Event
 {
   EventType type;
   int data;
+  unsigned long ts;
+
+  Event()
+  {
+    this->type = UNKNOWN;
+    this->data = 0;
+    this->ts = 0;
+  }
+
+  Event(EventType type, int data = 0, unsigned long ts = 0)
+  {
+    this->type = type;
+    this->data = data;
+    this->ts = ts;
+  }
 } Event;
+
 
 String eventToString(EventType e)
 {
@@ -44,6 +66,12 @@ String eventToString(EventType e)
       break;
     case BLINK_OFF:
       s = "BLINK_OFF";
+      break;
+    case BTN:
+      s = "BTN";
+      break;
+    case BTN_DOUBLE:
+      s = "BTN_DOUBLE";
       break;
     case BTN_SHORT:
       s = "BTN_SHORT";

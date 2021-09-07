@@ -1,4 +1,4 @@
-
+/*
 template <typename T>
 class Fifo
 {
@@ -58,4 +58,4 @@ class Fifo
     size_t nofNodes;
     const size_t maxSize;
     T buffer[maxSize];
-};
+};*/

@@ -1,21 +1,20 @@
 #include "colors.h"
 #include "ESP8266WiFi.h"
 #include "events.h"
-#include "messages.h"4
+#include "messages.h"
 
 #define ISR_PREFIX ICACHE_RAM_ATTR
+#define DEBUG
+
+const int SERIAL_BAUNDRATE = 115200;
 
 //Hardware parameters:
-const int LED_PIN = 15;
-const int BTN_PIN = 13;
-const int DIP_PIN_1 = 2;
-const int DIP_PIN_2 = 0;
-const int DIP_PIN_3 = 4;
-const int DIP_PIN_4 = 5;
+const int LED_PIN = 2; //D4: gpio2 (internal led)
+const int BTN_PIN = 4; //D2: gpio4
 Color BTN_COLOR = UNDEFINED;
 
 //LED related parameters
-const int LED_BRIGHTNESS_MAX = 1023;
+const int LED_BRIGHTNESS_MAX = 255;
 const int LED_BRIGHTNESS_MIN = 0;
 bool ledState = LOW;
 int ledBrightness = 0;
@@ -45,6 +44,7 @@ const int clientPort = 80;
 
 //Button related parameters
 
+/*
 //Increased every time BTN_PIN interrupts
 volatile byte btnChangedCounter = 0;
 
@@ -57,9 +57,24 @@ const byte thresholdForBtnRelease = 20;
 
 //Time to wait for new state changes from the first BTN_PIN change
 const unsigned long btnChangeRecordTime_ms = 30;
+*/
 
-unsigned long btnPressedTime_ms = 0;
-const unsigned long btnLongPressThreshold_ms = 750;
+typedef struct BtnClick
+{
+  unsigned long ts;
+  unsigned long pressed_ms;
+  unsigned long released_ms;
+  
+} BtnClick;
+
+volatile byte unhandledButtonPresses = 0;
+volatile unsigned long btnPressedTime_ms = 0;
+volatile unsigned long btnReleasedTime_ms = 0;
+unsigned long btnPressDuration_ms = 0;
+const unsigned long btnDebounceThreshold_ms = 10;
+
+//Buffer to store unhandled button presses (supports only single press at the moment)
+BtnClick btnBuffer[1];
 
 
 //Communication related:
@@ -70,10 +85,11 @@ Event outgoingEvent;
 //--------------------Event sending/receiving--------------------
 
 //Set new event to be sent later
-void setEvent(EventType type, int data = 0)
+void setEvent(EventType type, int data = 0, unsigned long ts = 0)
 {
   outgoingEvent.type = type;
   outgoingEvent.data = data;
+  outgoingEvent.ts = ts;
 }
 
 //Get the latest available event
@@ -94,20 +110,22 @@ void sendEvent(bool debug = false)
     msg::msg["color"] = BTN_COLOR;
     msg::msg["event"] = static_cast<int>(outgoingEvent.type);
     msg::msg["data"] = static_cast<int>(outgoingEvent.data);
+    msg::msg["ts"] = static_cast<unsigned long>(outgoingEvent.ts);
 
     //Serialize the message and send it
     serializeJson(msg::msg, wifiClient);
 
-    clearOutgoingEvent();
+#ifdef DEBUG
+    Serial.print("Event sent: ");
+    Serial.print(eventToString(outgoingEvent.type));
+    Serial.print(" (");
+    Serial.print(static_cast<int>(outgoingEvent.data));
+    Serial.print(", ");
+    Serial.print(static_cast<unsigned long>(outgoingEvent.ts));
+    Serial.println(")");
+#endif
 
-    if (debug)
-    {
-      Serial.print("Event sent: ");
-      Serial.print(eventToString(outgoingEvent.type));
-      Serial.print(" (");
-      Serial.print(static_cast<int>(outgoingEvent.data));
-      Serial.println(")");
-    }
+    clearOutgoingEvent();
   }
   else
   {
@@ -131,15 +149,17 @@ void receiveEvent(bool debug = false)
       //Construct an event from the message:
       receivedEvent.type = msg::msg["event"];
       receivedEvent.data = msg::msg["data"];
+      receivedEvent.ts = msg::msg["ts"];
 
-      if (debug)
-      {
-        Serial.print("Received event: ");
-        Serial.print(eventToString(receivedEvent.type));
-        Serial.print(" (");
-        Serial.print(static_cast<int>(receivedEvent.data));
-        Serial.println(")");
-      }
+#ifdef DEBUG
+      Serial.print("Received event: ");
+      Serial.print(eventToString(receivedEvent.type));
+      Serial.print(" (");
+      Serial.print(static_cast<int>(receivedEvent.data));
+      Serial.print(", ");
+      Serial.print(static_cast<unsigned long>(receivedEvent.ts));
+      Serial.println(")");
+#endif
     }
   }
 }
@@ -149,6 +169,7 @@ void clearOutgoingEvent()
 {
   outgoingEvent.type = UNKNOWN;
   outgoingEvent.data = 0;
+  outgoingEvent.ts = 0;
 }
 
 //Clear the receiving buffer
@@ -156,6 +177,7 @@ void clearReceivedEvent()
 {
   receivedEvent.type = UNKNOWN;
   receivedEvent.data = 0;
+  receivedEvent.ts = 0;
 }
 
 //--------------------Effects--------------------
@@ -299,7 +321,6 @@ void handleEvent(const Event e, bool debug = false)
       break;
     case COLOR:
       setEvent(COLOR, BTN_COLOR);
-      if (debug) Serial.println("Color asked");
       break;
   }
 }
@@ -309,11 +330,21 @@ void handleEvent(const Event e, bool debug = false)
 //Handles interrupt caused by the button press
 ISR_PREFIX void handleInterrupt()
 {
-  if (btnChangedCounter == 0)
+  const unsigned long t_ms = millis();
+  if (t_ms - btnPressedTime_ms >= btnDebounceThreshold_ms &&
+      t_ms - btnReleasedTime_ms >= btnDebounceThreshold_ms)
   {
-    btnChangedTime_ms = millis();
+    if (digitalRead(BTN_PIN))
+    {
+      btnPressedTime_ms = t_ms;
+    }
+    else
+    {
+      btnReleasedTime_ms = t_ms;
+      btnPressDuration_ms = btnReleasedTime_ms - btnPressedTime_ms;
+      ++unhandledButtonPresses;
+    }
   }
-  btnChangedCounter++;
 }
 
 //--------------------Buttons--------------------
@@ -324,73 +355,50 @@ void handleButtonPress(bool debug = false)
   Event btnEvent;
   btnEvent.type = UNKNOWN;
   btnEvent.data = 0;
+  btnEvent.ts = 0;
 
-  if (btnChangedCounter > 0)
+  if (unhandledButtonPresses > 0)
   {
-      unsigned long currentTime_ms = millis();
-      if (currentTime_ms - btnChangedTime_ms > btnChangeRecordTime_ms)
-      {
-        //Serial.println(btnChangedCounter);
-        if (btnChangedCounter >= thresholdForBtnRelease)
-        {
-          //Button was released
-          if (btnChangedTime_ms - btnPressedTime_ms >= btnLongPressThreshold_ms)
-          {
-            btnEvent.type = BTN_LONG;
-          }
-          else
-          {
-            btnEvent.type = BTN_SHORT;
-          }
-          btnEvent.data = static_cast<int>(btnChangedTime_ms - btnPressedTime_ms);
-        }
-        else
-        {
-          //Button was pressed
-          btnPressedTime_ms = btnChangedTime_ms;
-        }
-
-        //Changes handled, reset the counter
-        btnChangedCounter = 0;
-      }
+    //Single click
+    btnEvent.type = BTN;
+    btnEvent.data = btnPressDuration_ms;
+    btnEvent.ts = btnPressedTime_ms;
+    unhandledButtonPresses = 0;
   }
 
   if (btnEvent.type != UNKNOWN)
   {
-    setEvent(btnEvent.type, btnEvent.data);
+    setEvent(btnEvent.type, btnEvent.data, btnEvent.ts);
   }
 }
 
 //--------------------Button color--------------------
 
-Color getColor(bool debug)
+//Determines color based on mac address (unique for every board)
+Color getColorByMac()
 {
-  if (debug)
-  {
-    Serial.println(digitalRead(DIP_PIN_1));
-    Serial.println(digitalRead(DIP_PIN_2));
-    Serial.println(digitalRead(DIP_PIN_3));
-    Serial.println(digitalRead(DIP_PIN_4));
-  }
-  
-  int bit0 = !digitalRead(DIP_PIN_1) << 3;
-  int bit1 = !digitalRead(DIP_PIN_2) << 2;
-  int bit2 = !digitalRead(DIP_PIN_3) << 1;
-  int bit3 = !digitalRead(DIP_PIN_4);
+  Color btn_color = UNDEFINED;
 
-  int dipValue = bit0 + bit1 + bit2 + bit3;
-  if (debug)
-  {
-    Serial.print("DIP value: ");
-    Serial.println(dipValue);
-  }
+  String mac = WiFi.macAddress();
 
-  if (dipValue >= UNDEFINED)
+  if (mac == "68:C6:3A:D6:3A:FE")
   {
-    return UNDEFINED;
+    btn_color = BLUE;
   }
+  else if (mac == "B4:E6:2D:23:2F:4D")
+  {
+    btn_color = YELLOW;
+  }
+  else
+  {
+#ifdef DEBUG
+  Serial.print("Unknown color for MAC: ");
+  Serial.println(mac);
+#endif
+  }
+  //Add more colors here
 
-  return static_cast<Color>(dipValue);
+  return btn_color;
 }
 
 //--------------------wifiClient connections--------------------
@@ -419,23 +427,13 @@ int connectToGameServer(const int waitTime_ms = 3000)
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
-  pinMode(BTN_PIN, INPUT_PULLUP);
-  pinMode(DIP_PIN_1, INPUT);
-  pinMode(DIP_PIN_2, INPUT);
-  pinMode(DIP_PIN_3, INPUT);
-  pinMode(DIP_PIN_4, INPUT);
+  pinMode(BTN_PIN, INPUT);
 
   digitalWrite(LED_PIN, LOW);  //turn off by LOW
 
   //Serial connection for debugging purposes
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUNDRATE);
   delay(1000);
-
-  //Determine own color:
-  BTN_COLOR = getColor(false);
-  Serial.println("");
-  Serial.print("Color of the button: ");
-  Serial.println(colorToString(BTN_COLOR));
 
   attachInterrupt(digitalPinToInterrupt(BTN_PIN), handleInterrupt, CHANGE);
 
@@ -451,15 +449,20 @@ void setup() {
   Serial.print("- password: ");
   Serial.println(password);
 
-  /*
-  while(WiFi.status() != WL_CONNECTED)
-  {
-    delay(3000);
-    Serial.println("Trying to connect wifi...");
-  }
-  Serial.println("Wifi Connected:");
-  Serial.print("- ip: ");
-  Serial.println(WiFi.localIP());*/
+  //Determine own color based on mac (wifi must be started)
+  BTN_COLOR = getColorByMac();
+
+#ifdef DEBUG
+  Serial.println("");
+  Serial.print("Color of the button: ");
+  Serial.println(colorToString(BTN_COLOR));
+
+  Serial.println("Wifi (AP) parameters:");
+  Serial.print("- ssid: ");
+  Serial.println(ssid);
+  Serial.print("- password: ");
+  Serial.println(password);
+#endif
 }
 
 //--------------------Main program--------------------
@@ -501,7 +504,7 @@ void loop() {
       if (wifiClient && wifiClient.connected())
       {
         //Send new messages
-        sendEvent(false);
+        sendEvent(true);
   
         //Read if there are any new messages from the main button
         receiveEvent();

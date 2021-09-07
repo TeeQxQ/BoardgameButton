@@ -8,13 +8,15 @@
 #define ISR_PREFIX ICACHE_RAM_ATTR
 #define DEBUG
 
+const int SERIAL_BAUNDRATE = 115200;
+
 //Hardware parameters:
 const int LED_PIN = 2; //D4: gpio2 (internal led)
 const int BTN_PIN = 4; //D2: gpio4
 Color BTN_COLOR = UNDEFINED;
 
 //LED related parameters
-const int LED_BRIGHTNESS_MAX = 1023;
+const int LED_BRIGHTNESS_MAX = 255; //1023;
 const int LED_BRIGHTNESS_MIN = 0;
 bool ledState = LOW;
 int ledBrightness = 0;
@@ -51,7 +53,7 @@ volatile int btnBuffer[btnBufferSize];              //bfr to store btn press len
 volatile unsigned long btnTsBuffer[btnBufferSize];  //bfr to store btn press timestamps
 volatile byte btnPressedCount = 0; 
 const unsigned long btnDoubleClickDelayMax_ms = 500; //Max time to wait second click
-Fifo<BtnClick> testBuffer(10);
+//Fifo<BtnClick> testBuffer(10);
 
 //Communication related:
 //Buffer events to be send/received
@@ -235,6 +237,8 @@ void stopBreathing()
 //Handles how breathing works on this device
 void handleBreathing()
 {
+  const int ledBrightness_max = 100;
+  const int ledBrightness_min = 0;
   if (breathingEnabled)
   {
     if (millis() - lastBreathingTime_ms > breathingDelay_ms)
@@ -243,22 +247,22 @@ void handleBreathing()
       if (inhale)
       {
         ledBrightness++;
-        if (ledBrightness > 100)
+        if (ledBrightness > ledBrightness_max)
         {
-          ledBrightness = 100;
+          ledBrightness = ledBrightness_max;
           inhale = false;
         }
       }
       else
       {
         ledBrightness--;
-        if (ledBrightness < 0)
+        if (ledBrightness < ledBrightness_min)
         {
-          ledBrightness = 0;
+          ledBrightness = ledBrightness_min;
           inhale = true;
         }
       }
-      analogWrite(LED_PIN, map(ledBrightness, 0, 100, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
+      analogWrite(LED_PIN, map(ledBrightness, ledBrightness_min, ledBrightness_max, LED_BRIGHTNESS_MIN, LED_BRIGHTNESS_MAX));
      }
   }
 }
@@ -313,7 +317,7 @@ void handleEvent(const Event e)
 ISR_PREFIX void handleInterrupt()
 {
   const unsigned long t_ms = millis();
-  if (digitalRead(BTN_PIN))
+  /*if (digitalRead(BTN_PIN))
   {
     btnPressedTime_ms = t_ms;
   }
@@ -321,11 +325,11 @@ ISR_PREFIX void handleInterrupt()
   {
     btnReleasedTime_ms = t_ms;
     btnPressedCount++;
-  }
+  }*/
 
 
     
-  /*if (t_ms - btnPressedTime_ms >= btnDebounceThreshold_ms &&
+  if (t_ms - btnPressedTime_ms >= btnDebounceThreshold_ms &&
       t_ms - btnReleasedTime_ms >= btnDebounceThreshold_ms)
   {
     if (digitalRead(BTN_PIN))
@@ -337,14 +341,15 @@ ISR_PREFIX void handleInterrupt()
       btnReleasedTime_ms = t_ms;
 
       btnPressedCount++;
+      /*
       //Make sure counter stays within limits
       if (btnPressedCount <= btnBufferSize)
       {
          btnTsBuffer[btnPressedCount - 1] = btnPressedTime_ms;
          btnBuffer[btnPressedCount - 1] = btnReleasedTime_ms - btnPressedTime_ms;
-      }
+      }*/
     }
-  }*/
+  }
 }
 
 //--------------------Buttons--------------------
@@ -359,7 +364,8 @@ void handleButtonPress()
 
   if (btnPressedCount > 0)
   {
-    //
+    Serial.println("Click");
+    --btnPressedCount;
   }
 
   /*if (btnPressedCount > 0 && 
@@ -397,6 +403,17 @@ Color getColorByMac()
   {
     btn_color = BLUE;
   }
+  else if (mac == "B4:E6:2D:23:2F:4D")
+  {
+    btn_color = YELLOW;
+  }
+  else
+  {
+#ifdef DEBUG
+  Serial.print("Unknown color for MAC: ");
+  Serial.println(mac);
+#endif
+  }
   //Add more colors here
 
   return btn_color;
@@ -432,6 +449,13 @@ int connectToGameServer(const int waitTime_ms = 3000)
 //--------------------Setup--------------------
 
 void setup() {
+
+#ifdef DEBUG
+  //Serial connection for debugging purposes
+  Serial.begin(SERIAL_BAUNDRATE);
+  delay(1000);
+#endif
+
   pinMode(LED_PIN, OUTPUT);
   pinMode(BTN_PIN, INPUT);
 
@@ -448,11 +472,8 @@ void setup() {
   //Determine own color based on mac (wifi must be started)
   BTN_COLOR = getColorByMac();
 
-#ifdef DEBUG
-  //Serial connection for debugging purposes
-  Serial.begin(115200);
-  delay(1000);
 
+#ifdef DEBUG
   Serial.println("");
   Serial.print("Color of the button: ");
   Serial.println(colorToString(BTN_COLOR));
