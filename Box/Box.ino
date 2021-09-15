@@ -55,6 +55,10 @@ Event receivedEvents[nofColors] = { UNKNOWN };
 Event outgoingEvents[nofColors] = { UNKNOWN };
 bool newEventsReceived = false;
 
+//Button related
+const unsigned int BTN_LONG_THRESHOLD_MS = 750;
+const unsigned int BTN_LONG_LONG_THRESHOLD_MS = 3000; 
+
 //Game related
 Game game;
 
@@ -130,6 +134,14 @@ void eventToString(Event e, char* arr)
     case BTN_LONG:
       strncpy(arr, "BTN_LONG", 8);
       arr[8] = '\0';
+      break;
+    case BTN:
+      strncpy(arr, "BTN", 3);
+      arr[3] = '\0';
+      break;
+    case BTN_LONG_LONG:
+      strncpy(arr, "BTN_LONG_LONG", 13);
+      arr[13] = '\0';
       break;
     case COLOR:
       strncpy(arr, "COLOR", 5);
@@ -275,14 +287,40 @@ Event receiveEvent(Color color)
 
     if (e.type == BTN_SHORT || e.type == BTN_LONG || e.type == BTN)
     {
-      Serial.print(" (");
+      Serial.print(" data: ");
       Serial.print(static_cast<int>(e.data));
-      Serial.println(")");
+      Serial.print(" ts: ");
+      Serial.print(static_cast<int>(e.ts));
+      
+
+      //Convert general BTN event to SHORT or LONG or LONG LONG
+      if(e.type == BTN)
+      {
+        e.type = BTN_SHORT;
+        const int press_duration_ms = static_cast<unsigned int>(e.data);
+        if (press_duration_ms > BTN_LONG_THRESHOLD_MS)
+        {
+          e.type = BTN_LONG;
+        }
+
+        if (press_duration_ms > BTN_LONG_LONG_THRESHOLD_MS)
+        {
+          e.type = BTN_LONG_LONG;
+        }
+
+        Serial.print(" - Converted to ");
+        eventToString(e, charArray);
+        Serial.print(charArray);
+        
+      }
+      
     }
     else
     {
-      Serial.println("");
+      //intentionally empty
     }
+    
+    Serial.println("");
   }
   
   return e;
@@ -864,12 +902,13 @@ void loop()
       const Event e = getEvent(static_cast<Color>(i));
       if (e.type != UNKNOWN)
       {
-        Serial.print("e: ");
+        /*Serial.print("e: ");
         Serial.print(e.type);
         Serial.print(" data: ");
         Serial.print(e.data);
         Serial.print(" ts: ");
-        Serial.println(e.ts);
+        Serial.println(e.ts);*/
+        
         //const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
         //setEvent(returnAction.color, returnAction.type);
       }

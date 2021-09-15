@@ -389,6 +389,14 @@ Color getColorByMac()
   {
     btn_color = YELLOW;
   }
+  else if (mac == "9C:9C:1F:45:BC:8F")
+  {
+    btn_color = GREEN;
+  }
+  else if (mac == "B4:E6:2D:23:2D:82")
+  {
+    btn_color = RED;
+  }
   else
   {
 #ifdef DEBUG

@@ -17,7 +17,8 @@ enum EventType {
   ADDED = 12,
   REMOVED = 13,
   ALL_OFF_EXCEPT_ONE = 14,
-  BLINK_ALL = 15
+  BLINK_ALL = 15,
+  BTN_LONG_LONG
 };
 
 typedef struct Event
