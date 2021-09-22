@@ -29,8 +29,13 @@ class Game
 
     typedef struct Settings
     {
-      unsigned int mTurnsPerRound;
+      int mTurnsPerRound;
       bool mRoundOverWhenPassed;
+      bool mOrderMayChange;
+      unsigned int mChangeOrderBySteps;
+      bool mPredictablePlayerOrder;
+      unsigned int mLogAfterRounds;
+      const unsigned int nofSettings = 6;
     } Settings;
   
     Game();
@@ -39,6 +44,14 @@ class Game
     void reset();
     void save();
     void load();
+    void printSettings();
+    void changeSettings(int turnsPerRound,
+                        bool roundOverWhenPassed,
+                        bool orderMayChange,
+                        unsigned int changeOrderBySteps,
+                        bool predictablePlayerOrder,
+                        unsigned int logAfterRounds);
+    const unsigned int getNofSettings();
     const Game::Action play(const Action action);
     const Game::Action addPlayer(Color color);
     const Game::Action removePlayer(Color color);

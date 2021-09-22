@@ -125,6 +125,7 @@ void Game::initializeSettings()
   gameSettings.mRoundOverWhenPassed = false;
 }
 
+//Old
 void Game::fetchGameSettings()
 {
   //TODO
@@ -137,6 +138,44 @@ void Game::fetchGameSettings()
   mTurnsPerRound = 1; //UNLIMITED;               //Number of turns in a single round (0 - UNLIMITED)
   mRoundOverWhenPassed = false; //true;     //Round ends only after passing
 }
+
+void Game::printSettings()
+{
+  Serial.println("Game settings:");
+  Serial.print("  *Turns per round: ");
+  Serial.println(this->gameSettings.mTurnsPerRound);
+  Serial.print("  *Round over when passed: ");
+  Serial.println(this->gameSettings.mRoundOverWhenPassed);
+  Serial.print("  *Order may change: ");
+  Serial.println(this->gameSettings.mOrderMayChange);
+  Serial.print("  *Chane order by steps: ");
+  Serial.println(this->gameSettings.mChangeOrderBySteps);
+  Serial.print("  *Predictable player order: ");
+  Serial.println(this->gameSettings.mPredictablePlayerOrder);
+  Serial.print("  *Log after rounds: ");
+  Serial.println(this->gameSettings.mLogAfterRounds);
+}
+
+void Game::changeSettings(int turnsPerRound,
+                          bool roundOverWhenPassed,
+                          bool orderMayChange,
+                          unsigned int changeOrderBySteps,
+                          bool predictablePlayerOrder,
+                          unsigned int logAfterRounds)
+{
+  this->gameSettings.mTurnsPerRound = turnsPerRound;
+  this->gameSettings.mRoundOverWhenPassed = roundOverWhenPassed;
+  this->gameSettings.mOrderMayChange = orderMayChange;
+  this->gameSettings.mChangeOrderBySteps = changeOrderBySteps;
+  this->gameSettings.mPredictablePlayerOrder = predictablePlayerOrder;
+  this->gameSettings.mLogAfterRounds = logAfterRounds;
+}
+
+const unsigned int Game::getNofSettings()
+{
+  return this->gameSettings.nofSettings;
+}
+
 
 Game::state_t Game::currentGameState()
 {

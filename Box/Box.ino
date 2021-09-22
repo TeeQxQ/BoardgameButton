@@ -32,7 +32,7 @@ WiFiClientSecure driveUserContentClient;
 const char* driveHost = "script.google.com";
 const char* driveUserContentHost = "script.googleusercontent.com";
 const int drivePort = 443;
-const String GAS_ID = "AKfycbxU8CfT5WtIRWQP-HUGcN6hr23wonPNVmX72P4xWPTfKwv0XagR_NK163aJSkSRWLFwMQ";
+const String GAS_ID = "AKfycbwVeVEbpmNkz3V9mcwKXbPTIrE4oZhMlXaQfCgDhRZ2OXs_sLsTR4JN0SvYxowkkRY5RQ";
 const String url = "/macros/s/" + GAS_ID + "/exec?";
 const String httpString = " HTTP/1.1\r\nHost: " + String(driveHost) + "\r\nConnection: close\r\n\r\n";
 //Buffer to store data to be sent to drive
@@ -584,6 +584,7 @@ void clearLogBuffer()
   Serial.println("Log buffer cleared");
 }
 
+//Fetch settings from Google Drive
 void getSettings()
 {
   Serial.println("Start fetching settings from Google Drive...");
@@ -697,6 +698,117 @@ void getSettings()
   //Close everything gracefully
   Serial.println("Google Drive user content disconnected gracefully");
   Serial.println("Google Drive disconnected gracefully");
+
+  //Parse received data:
+
+  //Remove whitespaces
+  data.trim();
+
+  //Remove brackets and separate individual settings
+  //2D array [number of settings][setting, value]
+  String settings[game.getNofSettings()][2];
+
+  unsigned int currentSetting = 0;
+  unsigned int currentChar = 1; //The first (0) char is '{' - skip
+  unsigned int keyValueIndex = 0; //0 for key, 1 for value in 2D array
+  char c;
+  while (c != '}')
+  {
+    c = data[currentChar];
+    if (c == '}')
+    {
+      break;
+    }
+    else if (c == ',')
+    {
+      currentSetting++;
+      keyValueIndex = 0;
+    }
+    else if (c == ':')
+    {
+      keyValueIndex = 1;
+    }
+    else
+    {
+      settings[currentSetting][keyValueIndex] += c;
+    }
+    currentChar++;
+  }
+
+  int turnsPerRound;
+  bool roundOverWhenPassed;
+  bool orderMayChange;
+  unsigned int changeOrderBySteps;
+  bool predictablePlayerOrder;
+  unsigned int logAfterRounds;
+
+  for (int i = 0; i < game.getNofSettings(); i++)
+  {
+    if (settings[i][0] == "turnsPerRound")
+    {
+      turnsPerRound = settings[i][1].toInt();
+    }
+    else if (settings[i][0] == "roundOverWhenPassed")
+    {
+      if (settings[i][1] == "true")
+      {
+        roundOverWhenPassed = true;  
+      }
+      else
+      {
+        roundOverWhenPassed = false;
+      }
+    }
+    else if (settings[i][0] == "orderMayChange")
+    {
+      if (settings[i][1] == "true")
+      {
+        orderMayChange = true;  
+      }
+      else
+      {
+        orderMayChange = false;
+      }
+    }
+    else if (settings[i][0] == "changeOrderBySteps")
+    {
+      changeOrderBySteps = settings[i][1].toInt();
+    }
+    else if (settings[i][0] == "predictablePlayerOrder")
+    {
+      if (settings[i][1] == "true")
+      {
+        predictablePlayerOrder = true;  
+      }
+      else
+      {
+        predictablePlayerOrder = false;
+      }
+    }
+    else if (settings[i][0] == "logAfterRounds")
+    {
+      logAfterRounds = settings[i][1].toInt();
+    }
+    else
+    {
+      Serial.print("Unknown setting ");
+      Serial.print(settings[i][0]);
+      Serial.print(" with a value of ");
+      Serial.println(settings[i][1]);
+    }
+  }
+  
+  
+  //Save new settings
+  game.changeSettings(turnsPerRound,
+                      roundOverWhenPassed,
+                      orderMayChange,
+                      changeOrderBySteps,
+                      predictablePlayerOrder,
+                      logAfterRounds);
+
+  Serial.println("Settings updated successfully!");
+  game.printSettings();
   
 }
 
@@ -852,7 +964,7 @@ void setup()
   //Serial connection for debugging purposes
   Serial.begin(115200);
 
-  WiFi.onEvent(OnWiFiEvent);
+  //WiFi.onEvent(OnWiFiEvent);
 
   //Set the ESP32 to work in soft access point and station modes simultaneously
   WiFi.mode(WIFI_MODE_APSTA);
@@ -909,8 +1021,8 @@ void loop()
         Serial.print(" ts: ");
         Serial.println(e.ts);*/
         
-        //const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
-        //setEvent(returnAction.color, returnAction.type);
+        const Game::Action returnAction = game.play(Game::Action(static_cast<Color>(i), e.type));
+        setEvent(returnAction.color, returnAction.type);
       }
     }
     clearReceivedEvents();
