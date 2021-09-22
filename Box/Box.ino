@@ -10,6 +10,12 @@
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 
+//Logging
+#define LOG_LEVEL_INFO 2
+#define LOG_LEVEL_WARNING 1
+#define LOG_LEVEL_ERROR 0
+const unsigned int LOG_LEVEL = LOG_LEVEL_INFO;
+
 //Wifi access point (AP) parameters:
 const char* AP_ssid = "BoardGameBox";
 const char* AP_password = "box12345"; //must be >= 8 chars
@@ -45,9 +51,9 @@ unsigned long turnBuffer[maxNofCachedTurns][nofColors] = { 0 };
 const unsigned long driveConnectionTimeout_ms = 5000;
 
 
-//const int nofKnownWifis = 3;
-//const char* ssids[nofKnownWifis] = {"Kalat_ja_Rapu_2G", "TeeQNote9", "PikkuPingviini"};
-//const char* passwords[nofKnownWifis] = {"rutaQlli", "rutaQlli", "Pinquliini"};
+const int nofKnownWifis = 3;
+const char* ssids[nofKnownWifis] = {"Kalat_ja_Rapu_2G", "TeeQNote9", "PikkuPingviini"};
+const char* passwords[nofKnownWifis] = {"rutaQlli", "rutaQlli", "Pinquliini"};
 
 //Arrays to buffer events to be send/received
 //There is slot for every defined color
@@ -63,6 +69,34 @@ const unsigned int BTN_LONG_LONG_THRESHOLD_MS = 3000;
 Game game;
 
 //--------------------Debug helpers--------------------
+
+//Logger
+void log(unsigned int logLevel, String msg)
+{
+  switch (logLevel)
+  {
+    case LOG_LEVEL_ERROR:
+      Serial.print("ERROR: ");
+      Serial.println(msg);
+      break;
+    case LOG_LEVEL_WARNING:
+      if (LOG_LEVEL >= LOG_LEVEL_WARNING)
+      {
+        Serial.print("WARNING: ");
+        Serial.println(msg);
+      }
+      break;
+    case LOG_LEVEL_INFO:
+      if (LOG_LEVEL >= LOG_LEVEL_INFO)
+      {
+        Serial.print("INFO: ");
+        Serial.println(msg);
+      }
+      break;
+    default:
+      break;
+  }
+}
 
 String colorToString(Color c)
 {
