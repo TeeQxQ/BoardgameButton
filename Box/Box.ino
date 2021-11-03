@@ -337,10 +337,12 @@ Event receiveEvent(Color color)
           e.type = BTN_LONG;
         }
 
+        /*
         if (press_duration_ms > BTN_LONG_LONG_THRESHOLD_MS)
         {
           e.type = BTN_LONG_LONG;
         }
+        */
 
         Serial.print(" - Converted to ");
         eventToString(e, charArray);
@@ -540,19 +542,50 @@ void createSoftAP()
 
 void connectToWifi()
 {
-  WiFi.begin(network_ssid, network_password);
+  //WiFi.begin(network_ssid, network_password);
   while(WiFi.status() != WL_CONNECTED)
   {
-    Serial.println("Connecting to wifi...");
-    delay(1000);
+    //Scan available networks:
+    int nofNetworks = WiFi.scanNetworks();
+    if (nofNetworks == 0)
+    {
+      log(LOG_LEVEL_WARNING, "No networks found");
+    }
+    else
+    {
+      //Loop through networks and try to find known network
+      for (int i = 0; i < nofNetworks; i++)
+      {
+        if (WiFi.status() != WL_CONNECTED)
+        {
+          String networkSSID(WiFi.SSID(i)); 
+          for (int j = 0; j < nofKnownWifis; j++)
+          {
+            String knownSsid(ssids[j]);
+            if (knownSsid == networkSSID)
+            {
+              WiFi.begin(ssids[j], passwords[j]);
+              delay(3000);
+              break;
+            }
+          }
+        }
+        
+      }
+    }
+    //Serial.println("Connecting to wifi...");
+    //delay(1000);
   }
-  Serial.println("Wifi connected.");
+  log(LOG_LEVEL_INFO, "Wifi connected.");
+
+  //log(LOG_LEVEL_INFO, );
+  /*Serial.println("Wifi connected.");
   Serial.print("Wifi ssid: ");
   Serial.println(network_ssid);
   Serial.print("Wifi password: ");
   Serial.println(network_password);
   Serial.print("Local network IP address: ");
-  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.localIP());*/
 }
 
 void OnWiFiEvent(WiFiEvent_t event)

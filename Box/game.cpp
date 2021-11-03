@@ -169,6 +169,10 @@ void Game::changeSettings(int turnsPerRound,
   this->gameSettings.mChangeOrderBySteps = changeOrderBySteps;
   this->gameSettings.mPredictablePlayerOrder = predictablePlayerOrder;
   this->gameSettings.mLogAfterRounds = logAfterRounds;
+
+  //purkka
+  mTurnsPerRound = this->gameSettings.mTurnsPerRound;
+  mRoundOverWhenPassed = this->gameSettings.mRoundOverWhenPassed;
 }
 
 const unsigned int Game::getNofSettings()
