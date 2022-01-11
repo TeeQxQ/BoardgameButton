@@ -45,8 +45,8 @@ const Game::Action Game::play(const Action action)
 
 void Game::reset()
 {
-  initializeSettings();
-  fetchGameSettings();
+  //initializeSettings();
+  //fetchGameSettings();
   
   //reset players
   for (int i = 0; i < mMaxNofPlayers; i++)
