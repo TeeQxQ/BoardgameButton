@@ -10,7 +10,7 @@ const int SERIAL_BAUNDRATE = 115200;
 
 //Hardware parameters:
 const int LED_PIN = 2; //D4: gpio2 (internal led)
-const int BTN_PIN = 4; //D2: gpio4
+const int BTN_PIN = 12; //D6: gpio12 (different than v1.0!)
 Color BTN_COLOR = UNDEFINED;
 
 //LED related parameters
