@@ -397,6 +397,10 @@ Color getColorByMac()
   {
     btn_color = RED;
   }
+  else if (mac == "9C:9C:1F:45:B3:6C")
+  {
+    btn_color = WHITE;
+  }
   else
   {
 #ifdef DEBUG
@@ -524,49 +528,5 @@ void loop() {
     }
   }
 
-  /*
-  //Connect to the box running game server
-  if(connectToGameServer() != 0)
-  {
-    Serial.println("Trying to connect to the game server...");
-    delay(500);
-  }
-  else
-  {
-    if (wifiClient)
-    {
-      //While connection to the main button is alive:
-      if(wifiClient.connected())
-      {
-        delay(10);
   
-        
-        //Handle buttons
-        handleButtonPress();
-  
-        //Handle blinking
-        handleBlinking();
-        
-        //Read if there are any new messages from the main button
-        receiveEvent();
-  
-        //Handle new messages
-        handleEvent(getEvent(), true);
-        clearReceivedEvent();
-  
-        //Send new messages
-        sendEvent(true);
-        clearOutgoingEvent();
-        
-      }
-      else
-      {
-        wifiClient.stop();
-        Serial.print("Disconnected: ");
-        Serial.print(clientAddress);
-        Serial.print(" port: ");
-        Serial.println(clientPort);
-      }
-    }
-  }*/
 }
