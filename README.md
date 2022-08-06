@@ -26,6 +26,7 @@ Button for various board game purposes to indicate player actions and to log int
 * Sound indicator
 * OTA updates
 * Unlimited number of players
+* Mobile player without a button
 * Get rid of the box?
 * Bluetooth?
 * More advanced backend
