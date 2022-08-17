@@ -24,8 +24,8 @@ const bool HIDE_AP = true;
 const int MAX_NOF_CLIENTS = 5;
 
 //Wifi station mode (STA) parameters
-const char* network_ssid = "Kalat_ja_Rapu_2G"; //"TeeQNote9"; //"Kalat_ja_Rapu_2G";
-const char* network_password = "rutaQlli";
+const char* network_ssid = "LautapeliWifi"; //"TeeQNote9"; //"Kalat_ja_Rapu_2G";
+const char* network_password = "peli123";
 
 //Server related parameters:
 const int WIFI_PORT = 80;
@@ -51,9 +51,9 @@ unsigned long turnBuffer[maxNofCachedTurns][nofColors] = { 0 };
 const unsigned long driveConnectionTimeout_ms = 5000;
 
 
-const int nofKnownWifis = 3;
-const char* ssids[nofKnownWifis] = {"Kalat_ja_Rapu_2G", "TeeQNote9", "PikkuPingviini"};
-const char* passwords[nofKnownWifis] = {"rutaQlli", "rutaQlli", "Pinquliini"};
+const int nofKnownWifis = 4;
+const char* ssids[nofKnownWifis] = {"LautapeliWifi", "Kalat_ja_Rapu_2G", "TeeQNote9", "PikkuPingviini"};
+const char* passwords[nofKnownWifis] = {"peli1234", "rutaQlli", "rutaQlli", "Pinquliini"};
 
 //Arrays to buffer events to be send/received
 //There is slot for every defined color
